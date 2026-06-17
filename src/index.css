@@ -1,0 +1,14 @@
+@import "tailwindcss";
+/* Todos los inputs y textareas del sistema en mayúsculas */
+input[type="text"],
+input[type="search"],
+input:not([type="email"]):not([type="password"]):not([type="number"]):not([type="date"]):not([type="time"]):not([type="tel"]),
+textarea {
+  text-transform: uppercase;
+}
+
+/* Excepción: campos donde NO queremos mayúsculas */
+input[data-no-upper],
+textarea[data-no-upper] {
+  text-transform: none;
+}
