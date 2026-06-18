@@ -17,6 +17,7 @@ import CierreCajaPage from './pages/CierreCajaPage'
 import TrabajosPendientesPage from './pages/TrabajosPendientesPage'
 import HistorialCajaPage from './pages/HistorialCajaPage'
 import BitacoraPage from './pages/BitacoraPage'
+import InventarioPage from './pages/InventarioPage'
 
 function App() {
   const [session, setSession] = useState(undefined)
@@ -57,6 +58,7 @@ function App() {
 <Route path="/ventas/historial-caja" element={<HistorialCajaPage />} />
 <Route path="/ventas/:id" element={<VentaDetailPage />} />
 <Route path="/bitacora" element={<BitacoraPage />} />
+<Route path="/inventario" element={<InventarioPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

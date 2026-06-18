@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Users, Stethoscope, FileText, ShoppingCart, Clock, History } from 'lucide-react'
+import { Users, Stethoscope, FileText, ShoppingCart, Clock, History, Glasses } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 
@@ -9,6 +9,7 @@ const baseNavItems = [
   { to: '/recetas', icon: FileText, label: 'Recetas' },
   { to: '/ventas', icon: ShoppingCart, label: 'Ventas' },
   { to: '/pendientes', icon: Clock, label: 'Pendientes' },
+  { to: '/inventario', icon: Glasses, label: 'Inventario' },
 ]
 
 const adminNavItems = [
