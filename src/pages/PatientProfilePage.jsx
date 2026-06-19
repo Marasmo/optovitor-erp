@@ -1,3 +1,4 @@
+// src/pages/PatientProfilePage.jsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -21,13 +22,25 @@ const estadoBadge = {
   anulado:    'bg-red-50 text-red-700',
 }
 
+async function registrarBitacora({ accion, detalle, usuarioId, sedeId }) {
+  await supabase.from('bitacora_ventas').insert({
+    venta_id: null,
+    sede_id: sedeId,
+    accion,
+    detalle,
+    usuario_id: usuarioId,
+  })
+}
+
 export default function PatientProfilePage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [patient, setPatient] = useState(null)
-  const [exams, setExams] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [patient, setPatient]   = useState(null)
+  const [exams, setExams]       = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [isAdmin, setIsAdmin]   = useState(false)
+  const [miSedeId, setMiSedeId] = useState(null)   // sede del usuario logueado
+  const [miUserId, setMiUserId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => { fetchData() }, [id])
@@ -39,10 +52,12 @@ export default function PatientProfilePage() {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('roles(nombre)')
+        .select('sede_id, roles(nombre)')
         .eq('id', user.id)
         .single()
       setIsAdmin(profile?.roles?.nombre === 'admin')
+      setMiSedeId(profile?.sede_id)
+      setMiUserId(user.id)
     }
 
     const [{ data: p }, { data: e }] = await Promise.all([
@@ -57,8 +72,13 @@ export default function PatientProfilePage() {
     setLoading(false)
   }
 
+  // Un admin puede eliminar un examen solo si ese examen pertenece a su sede
+  function puedeEliminar(exam) {
+    return isAdmin && exam.sede_id === miSedeId
+  }
+
   async function handleDeleteExam(e, exam) {
-    e.stopPropagation() // evita navegar al detalle al hacer clic en el botón
+    e.stopPropagation()
 
     const tieneReceta = exam.prescriptions?.length > 0
     const mensaje = tieneReceta
@@ -69,15 +89,26 @@ export default function PatientProfilePage() {
 
     setDeletingId(exam.id)
     try {
-      // Eliminar receta primero si existe (por la FK restrict)
       if (tieneReceta) {
         await supabase.from('prescriptions').delete().eq('exam_id', exam.id)
       }
-      // Eliminar mediciones (por si no hay cascade)
       await supabase.from('eye_measurements').delete().eq('exam_id', exam.id)
-      // Eliminar el examen
       const { error } = await supabase.from('eye_exams').delete().eq('id', exam.id)
       if (error) throw error
+
+      // Registrar en bitácora
+      await registrarBitacora({
+        accion: 'eliminar_examen',
+        detalle: {
+          exam_id: exam.id,
+          patient_id: id,
+          patient_nombre: `${patient?.nombres} ${patient?.apellidos}`,
+          fecha_examen: exam.fecha,
+          tenia_receta: tieneReceta,
+        },
+        usuarioId: miUserId,
+        sedeId: miSedeId,
+      })
 
       setExams(prev => prev.filter(ex => ex.id !== exam.id))
     } catch (err) {
@@ -87,21 +118,16 @@ export default function PatientProfilePage() {
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">
-      Cargando...
-    </div>
+    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">Cargando...</div>
   )
 
   if (!patient) return (
-    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">
-      Paciente no encontrado
-    </div>
+    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">Paciente no encontrado</div>
   )
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
 
-      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate('/pacientes')}
           className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
@@ -121,11 +147,8 @@ export default function PatientProfilePage() {
         </button>
       </div>
 
-      {/* Datos del paciente */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Datos personales
-        </h2>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Datos personales</h2>
         <div className="grid grid-cols-2 gap-3">
           {patient.dni && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -137,9 +160,7 @@ export default function PatientProfilePage() {
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar size={14} className="text-gray-400" />
               {calcularEdad(patient.fecha_nac)} años
-              <span className="text-gray-400">
-                ({format(new Date(patient.fecha_nac), 'dd/MM/yyyy')})
-              </span>
+              <span className="text-gray-400">({format(new Date(patient.fecha_nac), 'dd/MM/yyyy')})</span>
             </div>
           )}
           {patient.telefono && (
@@ -155,19 +176,14 @@ export default function PatientProfilePage() {
             </div>
           )}
         </div>
-
-        {/* Antecedentes */}
         {patient.antecedentes && (
           <div className="mt-4 pt-4 border-t border-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-              Antecedentes
-            </p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Antecedentes</p>
             <p className="text-sm text-gray-600">{patient.antecedentes}</p>
           </div>
         )}
       </div>
 
-      {/* Historial de exámenes */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
           Historial de exámenes ({exams.length})
@@ -197,6 +213,12 @@ export default function PatientProfilePage() {
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-gray-400 capitalize">{exam.tipo_examen}</span>
+                      {/* Indicador de sede si es de otra sede */}
+                      {exam.sede_id !== miSedeId && (
+                        <span className="text-xs text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded">
+                          otra sede
+                        </span>
+                      )}
                       {exam.prescriptions?.length > 0 && (
                         <span className="text-xs text-green-600 flex items-center gap-1">
                           · <FileText size={10} /> Receta emitida
@@ -209,12 +231,12 @@ export default function PatientProfilePage() {
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${estadoBadge[exam.estado]}`}>
                     {exam.estado}
                   </span>
-                  {/* Eliminar examen — solo admin */}
-                  {isAdmin && (
+                  {/* Eliminar — solo si el examen es de mi sede */}
+                  {puedeEliminar(exam) && (
                     <button
                       onClick={(e) => handleDeleteExam(e, exam)}
                       disabled={deletingId === exam.id}
-                      title="Eliminar examen (solo admin)"
+                      title="Eliminar examen"
                       className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Trash2 size={14} />

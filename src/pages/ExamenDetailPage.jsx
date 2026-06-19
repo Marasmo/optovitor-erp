@@ -1,3 +1,4 @@
+// src/pages/ExamenDetailPage.jsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -17,7 +18,6 @@ const proximaCitaLabel = {
   '1a': '1 año',
 }
 
-// -0.5 → "-0.50" · -1 → "-1.00" · +1.25 → "+1.25"
 function formatDiopt(value) {
   if (value === null || value === undefined || value === '') return null
   const n = parseFloat(value)
@@ -31,46 +31,45 @@ function formatEje(value) {
   return `${value}°`
 }
 
-// Fila OD u OI: ESF | CIL | EJE | A.V.
 function OjoRow({ label, color, esf, cil, eje, av }) {
-  const esfF = formatDiopt(esf)
-  const cilF = formatDiopt(cil)
-  const ejeF = formatEje(eje)
-
   return (
     <tr className="border-t border-gray-50">
       <td className="py-2.5 pr-4">
         <span className={`text-xs font-bold ${color}`}>{label}</span>
       </td>
-      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-        {esfF ?? '—'}
-      </td>
-      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-        {cilF ?? '—'}
-      </td>
-      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-        {ejeF ?? '—'}
-      </td>
-      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-        {av || '—'}
-      </td>
+      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{formatDiopt(esf) ?? '—'}</td>
+      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{formatDiopt(cil) ?? '—'}</td>
+      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{formatEje(eje) ?? '—'}</td>
+      <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{av || '—'}</td>
     </tr>
   )
+}
+
+async function registrarBitacora({ accion, detalle, usuarioId, sedeId }) {
+  await supabase.from('bitacora_ventas').insert({
+    venta_id: null,
+    sede_id: sedeId,
+    accion,
+    detalle,
+    usuario_id: usuarioId,
+  })
 }
 
 export default function ExamenDetailPage() {
   const { id, examId } = useParams()
   const navigate = useNavigate()
-  const [exam, setExam]       = useState(null)
-  const [patient, setPatient] = useState(null)
-  const [od, setOd]           = useState(null)
-  const [oi, setOi]           = useState(null)
-  const [extras, setExtras]   = useState({})
-  const [loading, setLoading] = useState(true)
-  const [canEdit, setCanEdit] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [exam, setExam]             = useState(null)
+  const [patient, setPatient]       = useState(null)
+  const [od, setOd]                 = useState(null)
+  const [oi, setOi]                 = useState(null)
+  const [extras, setExtras]         = useState({})
+  const [loading, setLoading]       = useState(true)
+  const [canEdit, setCanEdit]       = useState(false)
+  const [isAdmin, setIsAdmin]       = useState(false)
+  const [miSedeId, setMiSedeId]     = useState(null)
+  const [miUserId, setMiUserId]     = useState(null)
   const [prescriptionId, setPrescriptionId] = useState(null)
-  const [deleting, setDeleting] = useState(false)
+  const [deleting, setDeleting]     = useState(false)
 
   useEffect(() => { fetchData() }, [examId])
 
@@ -81,13 +80,15 @@ export default function ExamenDetailPage() {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role_id, roles(nombre)')
+        .select('sede_id, role_id, roles(nombre)')
         .eq('id', user.id)
         .single()
 
       const rol = profile?.roles?.nombre
       setCanEdit(rol === 'admin' || rol === 'optometrista')
       setIsAdmin(rol === 'admin')
+      setMiSedeId(profile?.sede_id)
+      setMiUserId(user.id)
     }
 
     const [{ data: e }, { data: p }] = await Promise.all([
@@ -95,10 +96,7 @@ export default function ExamenDetailPage() {
         .select('*, eye_measurements(*), prescriptions(id)')
         .eq('id', examId)
         .single(),
-      supabase.from('patients')
-        .select('*')
-        .eq('id', id)
-        .single()
+      supabase.from('patients').select('*').eq('id', id).single()
     ])
 
     if (e) {
@@ -112,12 +110,14 @@ export default function ExamenDetailPage() {
     setLoading(false)
   }
 
+  // Admin puede eliminar receta solo si el examen es de su sede
+  function puedeEliminarReceta() {
+    return isAdmin && exam?.sede_id === miSedeId
+  }
+
   async function handleDeletePrescription() {
     if (!prescriptionId) return
-    const confirmar = window.confirm(
-      '¿Seguro que deseas eliminar la receta de este examen? Esta acción no se puede deshacer.'
-    )
-    if (!confirmar) return
+    if (!window.confirm('¿Seguro que deseas eliminar la receta de este examen? Esta acción no se puede deshacer.')) return
 
     setDeleting(true)
     try {
@@ -127,6 +127,20 @@ export default function ExamenDetailPage() {
         .eq('id', prescriptionId)
       if (error) throw error
 
+      // Registrar en bitácora
+      await registrarBitacora({
+        accion: 'eliminar_receta',
+        detalle: {
+          prescription_id: prescriptionId,
+          exam_id: examId,
+          patient_id: id,
+          patient_nombre: `${patient?.nombres} ${patient?.apellidos}`,
+          fecha_examen: exam?.fecha,
+        },
+        usuarioId: miUserId,
+        sedeId: miSedeId,
+      })
+
       setPrescriptionId(null)
     } catch (err) {
       alert('Error al eliminar la receta: ' + err.message)
@@ -135,27 +149,23 @@ export default function ExamenDetailPage() {
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">
-      Cargando examen...
-    </div>
+    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">Cargando examen...</div>
   )
-
   if (!exam) return (
-    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">
-      Examen no encontrado
-    </div>
+    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">Examen no encontrado</div>
   )
 
   const add = extras.add || od?.ref_adicion || null
   const dip = extras.dip || od?.dp_lejos || null
-
   const tieneAdd = add !== null && add !== undefined && add !== '' && parseFloat(add) !== 0
   const dipCerca = tieneAdd && dip ? (parseFloat(dip) - 2).toFixed(1) : null
+
+  // ¿El examen es de otra sede? Mostrar aviso
+  const esDeOtraSede = exam.sede_id !== miSedeId
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
 
-      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(`/pacientes/${id}`)}
           className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
@@ -164,13 +174,12 @@ export default function ExamenDetailPage() {
         <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-800">Detalle del examen</h1>
           {patient && (
-            <p className="text-xs text-gray-400 mt-0.5">
-              {patient.nombres} {patient.apellidos}
-            </p>
+            <p className="text-xs text-gray-400 mt-0.5">{patient.nombres} {patient.apellidos}</p>
           )}
         </div>
         <div className="flex gap-2">
-          {canEdit && exam.estado !== 'anulado' && (
+          {/* Editar: solo si puede editar Y el examen es de su sede */}
+          {canEdit && exam.estado !== 'anulado' && !esDeOtraSede && (
             <button
               onClick={() => navigate(`/pacientes/${id}/examen/${examId}`)}
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -179,8 +188,8 @@ export default function ExamenDetailPage() {
             </button>
           )}
 
-          {/* Eliminar receta — solo admin y solo si existe */}
-          {isAdmin && prescriptionId && (
+          {/* Eliminar receta — solo admin de la misma sede */}
+          {puedeEliminarReceta() && prescriptionId && (
             <button
               onClick={handleDeletePrescription}
               disabled={deleting}
@@ -203,15 +212,20 @@ export default function ExamenDetailPage() {
         </div>
       </div>
 
-      {/* Aviso solo lectura */}
-      {!canEdit && (
+      {/* Aviso examen de otra sede */}
+      {esDeOtraSede && (
+        <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-2.5 text-xs text-purple-600 flex items-center gap-2">
+          👁️ Este examen pertenece a otra sede — solo lectura, no puede modificarse desde aquí
+        </div>
+      )}
+
+      {!canEdit && !esDeOtraSede && (
         <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-xs text-blue-600 flex items-center gap-2">
           📄 Vista de solo lectura — este documento no puede modificarse
         </div>
       )}
 
-      {/* Aviso receta eliminada */}
-      {isAdmin && exam.estado === 'finalizado' && !prescriptionId && (
+      {isAdmin && exam.estado === 'finalizado' && !prescriptionId && !esDeOtraSede && (
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 text-xs text-amber-600 flex items-center gap-2">
           ⚠️ Este examen no tiene receta generada (o fue eliminada).
         </div>
@@ -240,18 +254,16 @@ export default function ExamenDetailPage() {
             {exam.estado}
           </span>
         </div>
-
-        {exam.estado === 'borrador' && canEdit && (
+        {exam.estado === 'borrador' && canEdit && !esDeOtraSede && (
           <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-xs text-yellow-700">
             ⚠️ Este examen está en borrador. Finalízalo para poder generar la receta.
           </div>
         )}
       </div>
 
-      {/* ── TABLA DE GRADUACIÓN ── */}
+      {/* Tabla de graduación */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="px-5 pt-4 pb-4">
-
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
               Graduación — Visión Lejana
@@ -262,7 +274,6 @@ export default function ExamenDetailPage() {
               </span>
             )}
           </div>
-
           <table className="w-full">
             <thead>
               <tr className="bg-blue-600 text-white text-xs">
@@ -274,48 +285,21 @@ export default function ExamenDetailPage() {
               </tr>
             </thead>
             <tbody>
-              <OjoRow
-                label="OD"
-                color="text-blue-700"
-                esf={od?.ref_esfera}
-                cil={od?.ref_cilindro}
-                eje={od?.ref_eje}
-                av={od?.av_vl}
-              />
-              <OjoRow
-                label="OI"
-                color="text-purple-700"
-                esf={oi?.ref_esfera}
-                cil={oi?.ref_cilindro}
-                eje={oi?.ref_eje}
-                av={oi?.av_vl}
-              />
+              <OjoRow label="OD" color="text-blue-700" esf={od?.ref_esfera} cil={od?.ref_cilindro} eje={od?.ref_eje} av={od?.av_vl} />
+              <OjoRow label="OI" color="text-purple-700" esf={oi?.ref_esfera} cil={oi?.ref_cilindro} eje={oi?.ref_eje} av={oi?.av_vl} />
             </tbody>
           </table>
-
-          {/* DIP + ADD */}
           {(dip || tieneAdd) && (
             <div className="mt-4 pt-3 border-t border-gray-50 flex flex-wrap gap-6">
-              {dip && (
-                <div className="text-sm text-gray-600">
-                  DIP: <span className="font-bold text-gray-800">{dip} mm</span>
-                </div>
-              )}
-              {tieneAdd && (
-                <div className="text-sm text-gray-600">
-                  ADD: <span className="font-bold text-purple-700">{formatDiopt(add)}</span>
-                </div>
-              )}
+              {dip && <div className="text-sm text-gray-600">DIP: <span className="font-bold text-gray-800">{dip} mm</span></div>}
+              {tieneAdd && <div className="text-sm text-gray-600">ADD: <span className="font-bold text-purple-700">{formatDiopt(add)}</span></div>}
             </div>
           )}
         </div>
 
-        {/* ── VISIÓN CERCANA — solo si hay ADD ── */}
         {tieneAdd && (
           <div className="px-5 pt-3 pb-4 border-t border-purple-100 bg-purple-50/40">
-            <span className="text-xs font-bold text-purple-700 uppercase tracking-wide block mb-3">
-              Visión Cercana
-            </span>
+            <span className="text-xs font-bold text-purple-700 uppercase tracking-wide block mb-3">Visión Cercana</span>
             <table className="w-full">
               <thead>
                 <tr className="bg-purple-600 text-white text-xs">
@@ -326,65 +310,32 @@ export default function ExamenDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-t border-purple-100">
-                  <td className="py-2.5 pl-3 pr-2">
-                    <span className="text-xs font-bold text-blue-700">OD</span>
-                  </td>
-                  <td className="py-2.5 px-3 text-center text-sm font-medium text-purple-700">
-                    {formatDiopt(add)}
-                  </td>
-                  {dipCerca && (
-                    <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-                      {dipCerca} mm
-                    </td>
-                  )}
-                  <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-                    {od?.av_vp || '—'}
-                  </td>
-                </tr>
-                <tr className="border-t border-purple-100">
-                  <td className="py-2.5 pl-3 pr-2">
-                    <span className="text-xs font-bold text-purple-700">OI</span>
-                  </td>
-                  <td className="py-2.5 px-3 text-center text-sm font-medium text-purple-700">
-                    {formatDiopt(add)}
-                  </td>
-                  {dipCerca && (
-                    <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-                      {dipCerca} mm
-                    </td>
-                  )}
-                  <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">
-                    {oi?.av_vp || '—'}
-                  </td>
-                </tr>
+                {[{ label: 'OD', color: 'text-blue-700', av: od?.av_vp }, { label: 'OI', color: 'text-purple-700', av: oi?.av_vp }].map(({ label, color, av }) => (
+                  <tr key={label} className="border-t border-purple-100">
+                    <td className="py-2.5 pl-3 pr-2"><span className={`text-xs font-bold ${color}`}>{label}</span></td>
+                    <td className="py-2.5 px-3 text-center text-sm font-medium text-purple-700">{formatDiopt(add)}</td>
+                    {dipCerca && <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{dipCerca} mm</td>}
+                    <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{av || '—'}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-            {dipCerca && (
-              <p className="text-xs text-gray-400 mt-2">
-                * DIP cerca = DIP lejos − 2mm
-              </p>
-            )}
+            {dipCerca && <p className="text-xs text-gray-400 mt-2">* DIP cerca = DIP lejos − 2mm</p>}
           </div>
         )}
       </div>
 
-      {/* Recomendaciones y próxima cita */}
       {(exam.recomendaciones || extras.proxima_cita) && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 grid grid-cols-2 gap-6">
           {exam.recomendaciones && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Recomendaciones para la vendedora
-              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recomendaciones para la vendedora</p>
               <p className="text-sm text-gray-700">{exam.recomendaciones}</p>
             </div>
           )}
           {extras.proxima_cita && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Próxima cita
-              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Próxima cita</p>
               <p className="text-sm font-medium text-blue-700">
                 {proximaCitaLabel[extras.proxima_cita] || extras.proxima_cita}
               </p>
