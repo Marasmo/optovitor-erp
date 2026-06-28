@@ -36,31 +36,33 @@ function App() {
     </div>
   )
 
-  if (!session) return <LoginPage />
-
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/pacientes" />} />
-          <Route path="/pacientes" element={<PacientesPage />} />
-          <Route path="/pacientes/:id" element={<PatientProfilePage />} />
-          <Route path="/pacientes/:id/examen/:examId" element={<ExamenPage />} />
-          <Route path="/pacientes/:id/examen/:examId/detalle" element={<ExamenDetailPage />} />
-          <Route path="/pacientes/:id/examen/:examId/receta" element={<RecetaPage />} />
-          <Route path="/examenes" element={<ExamenesPage />} />
-          <Route path="/recetas" element={<RecetasPage />} />
-          <Route path="/ventas" element={<VentasPage />} />
-<Route path="/ventas/nueva" element={<VentaFormPage />} />
-<Route path="/ventas/nueva/:patientId" element={<VentaFormPage />} />
-<Route path="/ventas/cierre-caja" element={<CierreCajaPage />} />
-<Route path="/pendientes" element={<TrabajosPendientesPage />} />
-<Route path="/ventas/historial-caja" element={<HistorialCajaPage />} />
-<Route path="/ventas/:id" element={<VentaDetailPage />} />
-<Route path="/bitacora" element={<BitacoraPage />} />
-<Route path="/inventario" element={<InventarioPage />} />
-        </Routes>
-      </Layout>
+      {!session ? (
+        <LoginPage />
+      ) : (
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Navigate to="/pacientes" />} />
+            <Route path="/pacientes" element={<PacientesPage />} />
+            <Route path="/pacientes/:id" element={<PatientProfilePage />} />
+            <Route path="/pacientes/:id/examen/:examId" element={<ExamenPage />} />
+            <Route path="/pacientes/:id/examen/:examId/detalle" element={<ExamenDetailPage />} />
+            <Route path="/pacientes/:id/examen/:examId/receta" element={<RecetaPage />} />
+            <Route path="/examenes" element={<ExamenesPage />} />
+            <Route path="/recetas" element={<RecetasPage />} />
+            <Route path="/ventas" element={<VentasPage />} />
+            <Route path="/ventas/nueva" element={<VentaFormPage />} />
+            <Route path="/ventas/nueva/:patientId" element={<VentaFormPage />} />
+            <Route path="/ventas/cierre-caja" element={<CierreCajaPage />} />
+            <Route path="/pendientes" element={<TrabajosPendientesPage />} />
+            <Route path="/ventas/historial-caja" element={<HistorialCajaPage />} />
+            <Route path="/ventas/:id" element={<VentaDetailPage />} />
+            <Route path="/bitacora" element={<BitacoraPage />} />
+            <Route path="/inventario" element={<InventarioPage />} />
+          </Routes>
+        </Layout>
+      )}
     </BrowserRouter>
   )
 }

@@ -10,6 +10,9 @@
 const TENANTS = {
   sunvision: {
     id: 'sunvision',
+    sedeId: '433c439e-45c0-4e2c-8eef-9e2540199a87',
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL_SUNVISION,
+    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY_SUNVISION,
     nombre: 'Sun & Vision Óptica',
     colores: {
       // Primario: azul del logo
@@ -32,8 +35,11 @@ const TENANTS = {
     logoLg: '/sunvision-logo.png',   // logo completo Sun & Vision
     favicon: '/sunvision-favicon.ico',
   },
-  opticajuliaca: {
+opticajuliaca: {
     id: 'opticajuliaca',
+    sedeId: '826381bf-84d5-4709-b67f-6332026ec5d5',
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL_JULIACA,
+    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY_JULIACA,
     nombre: 'Óptica Juliaca',
     colores: {
       primary:        '#E31E24',

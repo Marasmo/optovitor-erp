@@ -1,5 +1,5 @@
 // src/pages/LoginPage.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useTenant } from '../hooks/useTenant'
 
@@ -12,12 +12,42 @@ export default function LoginPage() {
   const tenant = useTenant()
   const { colores, nombre, logoLg } = tenant
 
+  useEffect(() => {
+    document.title = nombre
+  }, [nombre])
+
   async function handleLogin(e) {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError('Correo o contraseña incorrectos')
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setError('Correo o contraseña incorrectos')
+      setLoading(false)
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('sede_id, superadmin')
+      .eq('id', data.user.id)
+      .single()
+
+    console.log('profile:', profile)
+    console.log('tenant.sedeId:', tenant.sedeId)
+    console.log('superadmin:', profile?.superadmin)
+    console.log('sede_id coincide:', profile?.sede_id === tenant.sedeId)
+
+    const sedeEsCorrecta = profile?.superadmin === true || profile?.sede_id === tenant.sedeId
+
+    if (!sedeEsCorrecta) {
+      await supabase.auth.signOut()
+      setError('No tienes acceso a esta sede')
+      setLoading(false)
+      return
+    }
+
     setLoading(false)
   }
 
@@ -25,7 +55,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4"
       style={{ backgroundColor: colores.primaryLight }}
     >
-      {/* Acento decorativo superior */}
       <div
         className="fixed top-0 left-0 right-0 h-1"
         style={{ backgroundColor: colores.accent }}
@@ -33,7 +62,6 @@ export default function LoginPage() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-sm p-8">
 
-        {/* Logo + nombre sede */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <img
@@ -46,7 +74,6 @@ export default function LoginPage() {
           <p className="text-sm text-gray-400 mt-1">Ingresa tus credenciales</p>
         </div>
 
-        {/* Formulario */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Correo</label>
@@ -91,7 +118,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Footer con marca Optovitor */}
         <p className="text-center text-[10px] text-gray-300 mt-6">
           Powered by <span className="font-semibold text-gray-400">Optovitor</span>
         </p>

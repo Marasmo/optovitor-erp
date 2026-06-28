@@ -22,15 +22,9 @@ function limpiarFormData(formData) {
 
 export default function PacientesPage() {
   const navigate = useNavigate()
-  const { patients, loading, createPatient, searchPatients, fetchPatients } = usePatients()
-  const [sedes, setSedes] = useState([])
+  const { patients, loading, total, createPatient, searchPatients, fetchPatients } = usePatients()
   const [modal, setModal] = useState(false)
 
-  useEffect(() => {
-    supabase.from('sedes').select('*').eq('activo', true).then(({ data }) => {
-      if (data) setSedes(data)
-    })
-  }, [])
 
   async function handleCreate(formData) {
     await createPatient(limpiarFormData(formData))
@@ -47,6 +41,7 @@ export default function PacientesPage() {
       <PatientList
         patients={patients}
         loading={loading}
+        total={total}
         onSearch={handleSearch}
         onNew={() => setModal(true)}
         onSelect={(patient) => navigate(`/pacientes/${patient.id}`)}
@@ -64,7 +59,6 @@ export default function PacientesPage() {
             </div>
             <div className="p-6">
               <PatientForm
-                sedes={sedes}
                 onSubmit={handleCreate}
                 onCancel={() => setModal(false)}
               />

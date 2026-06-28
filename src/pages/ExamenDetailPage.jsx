@@ -63,6 +63,7 @@ export default function ExamenDetailPage() {
   const [od, setOd]                 = useState(null)
   const [oi, setOi]                 = useState(null)
   const [extras, setExtras]         = useState({})
+  const [observacionesTexto, setObservacionesTexto] = useState(null)
   const [loading, setLoading]       = useState(true)
   const [canEdit, setCanEdit]       = useState(false)
   const [isAdmin, setIsAdmin]       = useState(false)
@@ -103,14 +104,30 @@ export default function ExamenDetailPage() {
       setExam(e)
       setOd(e.eye_measurements?.find(m => m.ojo === 'OD') || null)
       setOi(e.eye_measurements?.find(m => m.ojo === 'OI') || null)
-      try { setExtras(JSON.parse(e.observaciones || '{}')) } catch {}
+
+      // Intentar parsear observaciones como JSON (exámenes nuevos del sistema)
+      // Si falla, es texto plano (exámenes importados del legado)
+      if (e.observaciones) {
+        try {
+          const parsed = JSON.parse(e.observaciones)
+          if (typeof parsed === 'object' && parsed !== null) {
+            setExtras(parsed)
+            setObservacionesTexto(null)
+          } else {
+            setObservacionesTexto(e.observaciones)
+          }
+        } catch {
+          // No es JSON válido → es texto plano del legado
+          setObservacionesTexto(e.observaciones)
+        }
+      }
+
       if (e.prescriptions?.length > 0) setPrescriptionId(e.prescriptions[0].id)
     }
     if (p) setPatient(p)
     setLoading(false)
   }
 
-  // Admin puede eliminar receta solo si el examen es de su sede
   function puedeEliminarReceta() {
     return isAdmin && exam?.sede_id === miSedeId
   }
@@ -127,7 +144,6 @@ export default function ExamenDetailPage() {
         .eq('id', prescriptionId)
       if (error) throw error
 
-      // Registrar en bitácora
       await registrarBitacora({
         accion: 'eliminar_receta',
         detalle: {
@@ -159,13 +175,12 @@ export default function ExamenDetailPage() {
   const dip = extras.dip || od?.dp_lejos || null
   const tieneAdd = add !== null && add !== undefined && add !== '' && parseFloat(add) !== 0
   const dipCerca = tieneAdd && dip ? (parseFloat(dip) - 2).toFixed(1) : null
-
-  // ¿El examen es de otra sede? Mostrar aviso
   const esDeOtraSede = exam.sede_id !== miSedeId
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
 
+      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(`/pacientes/${id}`)}
           className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
@@ -178,7 +193,6 @@ export default function ExamenDetailPage() {
           )}
         </div>
         <div className="flex gap-2">
-          {/* Editar: solo si puede editar Y el examen es de su sede */}
           {canEdit && exam.estado !== 'anulado' && !esDeOtraSede && (
             <button
               onClick={() => navigate(`/pacientes/${id}/examen/${examId}`)}
@@ -187,8 +201,6 @@ export default function ExamenDetailPage() {
               <Edit size={15} /> Editar
             </button>
           )}
-
-          {/* Eliminar receta — solo admin de la misma sede */}
           {puedeEliminarReceta() && prescriptionId && (
             <button
               onClick={handleDeletePrescription}
@@ -199,7 +211,6 @@ export default function ExamenDetailPage() {
               {deleting ? 'Eliminando...' : 'Eliminar receta'}
             </button>
           )}
-
           {exam.estado === 'finalizado' && (
             <button
               onClick={() => navigate(`/pacientes/${id}/examen/${examId}/receta`)}
@@ -212,19 +223,17 @@ export default function ExamenDetailPage() {
         </div>
       </div>
 
-      {/* Aviso examen de otra sede */}
+      {/* Avisos */}
       {esDeOtraSede && (
         <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-2.5 text-xs text-purple-600 flex items-center gap-2">
           👁️ Este examen pertenece a otra sede — solo lectura, no puede modificarse desde aquí
         </div>
       )}
-
       {!canEdit && !esDeOtraSede && (
         <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-xs text-blue-600 flex items-center gap-2">
           📄 Vista de solo lectura — este documento no puede modificarse
         </div>
       )}
-
       {isAdmin && exam.estado === 'finalizado' && !prescriptionId && !esDeOtraSede && (
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 text-xs text-amber-600 flex items-center gap-2">
           ⚠️ Este examen no tiene receta generada (o fue eliminada).
@@ -325,6 +334,24 @@ export default function ExamenDetailPage() {
         )}
       </div>
 
+      {/* Observaciones */}
+      {exam.observaciones && !exam.observaciones.startsWith('{') && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Observaciones
+          </h3>
+          <div className="space-y-2">
+            {exam.observaciones.split(' | ').map((parte, idx) => (
+              <div key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="text-gray-300 mt-0.5">•</span>
+                <span>{parte.trim()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recomendaciones y próxima cita (exámenes nuevos del sistema) */}
       {(exam.recomendaciones || extras.proxima_cita) && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 grid grid-cols-2 gap-6">
           {exam.recomendaciones && (

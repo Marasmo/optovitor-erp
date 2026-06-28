@@ -100,29 +100,52 @@ export default function VentaDetailPage() {
     setShowPagoForm(true)
   }
 
-  async function handleAgregarPago() {
-    const monto = parseFloat(nuevoMonto)
-    if (isNaN(monto) || monto <= 0) {
-      alert('Ingresa un monto válido')
-      return
-    }
-
-    setSavingPago(true)
-    try {
-      const { error } = await supabase.from('venta_pagos').insert({
-        venta_id: id,
-        metodo_pago: nuevoMetodo,
-        monto_centimos: Math.round(monto * 100),
-      })
-      if (error) throw error
-
-      setShowPagoForm(false)
-      await fetchData()
-    } catch (err) {
-      alert('Error al registrar el pago: ' + err.message)
-    }
-    setSavingPago(false)
+async function handleAgregarPago() {
+  const monto = parseFloat(nuevoMonto)
+  if (isNaN(monto) || monto <= 0) {
+    alert('Ingresa un monto válido')
+    return
   }
+
+  // Calcular ANTES del await
+  const esPrimerPago = pagos.filter(p => p.estado === 'confirmado').length === 0
+
+  setSavingPago(true)
+  try {
+    const { error } = await supabase.from('venta_pagos').insert({
+      venta_id: id,
+      metodo_pago: nuevoMetodo,
+      monto_centimos: Math.round(monto * 100),
+    })
+    if (error) throw error
+
+    // Si es el PRIMER pago → crear trabajo en Dashboard Kanban
+    if (esPrimerPago && patient) {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: trabajo, error: trabajoError } = await supabase
+        .from('trabajos')
+        .insert({
+          id: crypto.randomUUID(),
+          cliente: `${patient.apellidos}, ${patient.nombres}`,
+          estado: 'produccion',
+          creado_por: user.id,
+          venta_id: id,
+          activo: true,
+          fecha_display: new Date().toLocaleDateString('es-PE'),
+        })
+        .select()
+        .single()
+      console.log('Trabajo insertado:', trabajo)
+      console.log('Error trabajo:', trabajoError)
+    }
+
+    setShowPagoForm(false)
+    await fetchData()
+  } catch (err) {
+    alert('Error al registrar el pago: ' + err.message)
+  }
+  setSavingPago(false)
+}
 
   async function handleEliminarPago(pagoId) {
     if (!window.confirm('¿Eliminar este pago?')) return

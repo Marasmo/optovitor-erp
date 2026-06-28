@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Search, UserPlus, User, Phone, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -14,14 +14,26 @@ function calcularEdad(fechaNac) {
   return edad
 }
 
-export default function PatientList({ patients, loading, onSearch, onNew, onSelect }) {
+export default function PatientList({ patients, loading, onSearch, onNew, onSelect, total }) {
   const [query, setQuery] = useState('')
+  const debounceRef = useRef(null)
 
   function handleSearch(e) {
     const q = e.target.value
     setQuery(q)
-    if (q.length >= 2) onSearch(q)
-    else if (q.length === 0) onSearch('')
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (q.length === 0) {
+      onSearch('')
+      return
+    }
+
+    if (q.length < 3) return  // no buscar hasta 3 caracteres
+
+    debounceRef.current = setTimeout(() => {
+      onSearch(q)
+    }, 350)  // espera 350ms después de la última tecla
   }
 
   return (
@@ -29,7 +41,7 @@ export default function PatientList({ patients, loading, onSearch, onNew, onSele
       <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-gray-800">Pacientes</h2>
-          <p className="text-sm text-gray-400">{patients.length} registrados</p>
+          <p className="text-sm text-gray-400">{total ?? patients.length} registrados</p>
         </div>
         <button onClick={onNew}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">

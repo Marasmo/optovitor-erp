@@ -3,22 +3,32 @@
 
   export function usePatients() {
     const [patients, setPatients] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
-
+const [loading, setLoading] = useState(true)
+const [error, setError] = useState(null)
+const [total, setTotal] = useState(0)
     useEffect(() => { fetchPatients() }, [])
 
     async function fetchPatients() {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('activo', true)
-        .order('created_at', { ascending: false })
-      if (error) setError(error.message)
-      else setPatients(data)
-      setLoading(false)
-    }
+  setLoading(true)
+  const [{ data, error }, { count }] = await Promise.all([
+    supabase
+      .from('patients')
+      .select('*')
+      .eq('activo', true)
+      .order('created_at', { ascending: false })
+      .limit(1000),
+    supabase
+      .from('patients')
+      .select('*', { count: 'exact', head: true })
+      .eq('activo', true)
+  ])
+  if (error) setError(error.message)
+  else {
+    setPatients(data)
+    setTotal(count ?? 0)
+  }
+  setLoading(false)
+}
 
     async function createPatient(formData) {
       const { data: { user } } = await supabase.auth.getUser()
@@ -44,16 +54,33 @@
       return data
     }
 
-    async function searchPatients(query) {
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('activo', true)
-        .or(`nombres.ilike.%${query}%,apellidos.ilike.%${query}%,dni.ilike.%${query}%`)
-        .order('apellidos')
-      if (error) throw error
-      setPatients(data)
-    }
+async function searchPatients(query) {
+  const q = query.trim()
 
-    return { patients, loading, error, fetchPatients, createPatient, updatePatient, searchPatients }
+  // DNI exacto
+  if (/^\d{8}$/.test(q)) {
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('activo', true)
+      .eq('dni', q)
+      .order('apellidos')
+    if (error) throw error
+    setPatients(data)
+    return
+  }
+
+  // Full-text search con índice GIN
+  const tsQuery = q.trim().split(/\s+/).filter(Boolean).join(' & ')
+  const { data, error } = await supabase
+    .from('patients')
+    .select('*')
+    .eq('activo', true)
+    .textSearch('search_vector', tsQuery, { config: 'simple' })
+    .limit(100)
+  if (error) throw error
+  setPatients(data)
+}
+
+    return { patients, loading, error, total, fetchPatients, createPatient, updatePatient, searchPatients }
   }

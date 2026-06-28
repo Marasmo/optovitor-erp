@@ -6,7 +6,6 @@ import { Search, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 
 const schema = z.object({
-  sede_id:      z.string().uuid('Selecciona una sede'),
   nombres:      z.string().min(2, 'Mínimo 2 caracteres'),
   apellidos:    z.string().min(2, 'Mínimo 2 caracteres'),
   dni:          z.string().regex(/^\d{8}$/, 'DNI debe tener 8 dígitos').optional().or(z.literal('')),
@@ -16,10 +15,6 @@ const schema = z.object({
   email:        z.string().email('Email inválido').optional().or(z.literal('')),
   direccion:    z.string().optional(),
   ocupacion:    z.string().optional(),
-  antecedentes: z.string().optional(),
-  medicamentos: z.string().optional(),
-  alergias:     z.string().optional(),
-  motivo:       z.string().optional(),
 })
 
 const Field = ({ label, error, children }) => (
@@ -45,20 +40,10 @@ export default function PatientForm({ sedes, onSubmit, onCancel, defaultValues }
   const [dniStatus, setDniStatus] = useState(null)
   const [dniMsg, setDniMsg] = useState('')
 
-  // Sede por defecto: "Óptica Juliaca" si existe, si no la primera de la lista
-  const sedeDefault = sedes.find(s => s.nombre === 'Óptica Juliaca')?.id || sedes[0]?.id || ''
-
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: defaultValues || { sede_id: sedeDefault }
+    defaultValues: defaultValues || {}
   })
-
-  // Si las sedes cargan después del primer render, asignar la sede por defecto
-  useEffect(() => {
-    if (!defaultValues && sedeDefault) {
-      setValue('sede_id', sedeDefault)
-    }
-  }, [sedeDefault])
 
   const dniValue = watch('dni')
 
@@ -169,35 +154,11 @@ export default function PatientForm({ sedes, onSubmit, onCancel, defaultValues }
           <Field label="Email" error={errors.email?.message}>
             <Input {...register('email')} type="email" placeholder="correo@ejemplo.com" />
           </Field>
-          <Field label="Sede *" error={errors.sede_id?.message}>
-            <Select {...register('sede_id')}>
-              <option value="">— Seleccionar sede —</option>
-              {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </Select>
-          </Field>
           <Field label="Ocupación">
             <Input {...register('ocupacion')} placeholder="Docente, comerciante..." />
           </Field>
           <Field label="Dirección">
             <Input {...register('direccion')} placeholder="Jr. Lima 123, Juliaca" />
-          </Field>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3 pb-2 border-b border-gray-100">Antecedentes médicos</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Antecedentes (diabetes, HTA, etc.)">
-            <Textarea {...register('antecedentes')} placeholder="Diabetes tipo 2..." />
-          </Field>
-          <Field label="Medicamentos actuales">
-            <Textarea {...register('medicamentos')} placeholder="Metformina 500mg..." />
-          </Field>
-          <Field label="Alergias">
-            <Input {...register('alergias')} placeholder="Penicilina, látex..." />
-          </Field>
-          <Field label="Motivo de consulta habitual">
-            <Input {...register('motivo')} placeholder="Control anual..." />
           </Field>
         </div>
       </div>

@@ -141,58 +141,64 @@ export default function ExamenPage() {
     return Object.keys(errs).length === 0
   }
 
-  async function handleSave(estado = 'borrador') {
-    if (estado === 'finalizado' && !validate()) return
-    setSaving(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
+async function handleSave(estado = 'borrador') {
+  if (estado === 'finalizado' && !validate()) return
+  setSaving(true)
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
 
-      const examPayload = {
-        patient_id:      id,
-        sede_id:         patient.sede_id,
-        optometrista_id: user.id,
-        fecha,
-        tipo_examen:     tipoExamen,
-        motivo_consulta: motivoConsulta,
-        recomendaciones,
-        observaciones: JSON.stringify({
-          uso: usoPrescripcion, dip, add, proxima_cita: proximaCita,
-        }),
-        estado,
-      }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('sede_id')
+      .eq('id', user.id)
+      .single()
 
-      let examData
-      if (examId === 'nuevo') {
-        const { data, error } = await supabase.from('eye_exams').insert(examPayload).select().single()
-        if (error) throw error
-        examData = data
-      } else {
-        const { data, error } = await supabase.from('eye_exams').update(examPayload).eq('id', examId).select().single()
-        if (error) throw error
-        examData = data
-      }
-
-      for (const [ojo, med] of [['OD', od], ['OI', oi]]) {
-        await supabase.from('eye_measurements').upsert({
-          exam_id:      examData.id,
-          ojo,
-          ref_esfera:   parseNum(med.esf),
-          ref_cilindro: parseNum(med.cil),
-          ref_eje:      parseNum(med.eje),
-          ref_adicion:  parseNum(add),
-          av_vl:        med.av       || null,
-          av_vp:        med.cerca_av || null,
-          dp_lejos:     parseNum(dip),
-          dp_cerca:     dipCerca !== '' ? parseNum(dipCerca) : null,
-        }, { onConflict: 'exam_id,ojo' })
-      }
-
-      navigate(`/pacientes/${id}`)
-    } catch (err) {
-      alert('Error al guardar: ' + err.message)
+    const examPayload = {
+      patient_id:      id,
+      sede_id:         profile.sede_id,
+      optometrista_id: user.id,
+      fecha,
+      tipo_examen:     tipoExamen,
+      motivo_consulta: motivoConsulta,
+      recomendaciones,
+      observaciones: JSON.stringify({
+        uso: usoPrescripcion, dip, add, proxima_cita: proximaCita,
+      }),
+      estado,
     }
-    setSaving(false)
+
+    let examData
+    if (examId === 'nuevo') {
+      const { data, error } = await supabase.from('eye_exams').insert(examPayload).select().single()
+      if (error) throw error
+      examData = data
+    } else {
+      const { data, error } = await supabase.from('eye_exams').update(examPayload).eq('id', examId).select().single()
+      if (error) throw error
+      examData = data
+    }
+
+    for (const [ojo, med] of [['OD', od], ['OI', oi]]) {
+      await supabase.from('eye_measurements').upsert({
+        exam_id:      examData.id,
+        ojo,
+        ref_esfera:   parseNum(med.esf),
+        ref_cilindro: parseNum(med.cil),
+        ref_eje:      parseNum(med.eje),
+        ref_adicion:  parseNum(add),
+        av_vl:        med.av       || null,
+        av_vp:        med.cerca_av || null,
+        dp_lejos:     parseNum(dip),
+        dp_cerca:     dipCerca !== '' ? parseNum(dipCerca) : null,
+      }, { onConflict: 'exam_id,ojo' })
+    }
+
+    navigate(`/pacientes/${id}`)
+  } catch (err) {
+    alert('Error al guardar: ' + err.message)
   }
+  setSaving(false)
+}
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
