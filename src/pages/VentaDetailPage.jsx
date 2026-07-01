@@ -125,7 +125,14 @@ async function handleAgregarPago() {
       const { data: trabajo, error: trabajoError } = await supabase
         .from('trabajos')
         .insert({
-          id: crypto.randomUUID(),
+          id: (() => {
+  const now = new Date()
+  const dia = String(now.getDate()).padStart(2, '0')
+  const mes = String(now.getMonth() + 1).padStart(2, '0')
+  const año = String(now.getFullYear()).slice(-2)
+  const rand = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')
+  return `OV-${dia}${mes}${año}-${rand}`
+})(),
           cliente: `${patient.apellidos}, ${patient.nombres}`,
           estado: 'produccion',
           creado_por: user.id,
@@ -284,8 +291,8 @@ async function handleAgregarPago() {
             <tr className="text-xs text-gray-400 border-b border-gray-50">
               <th className="text-left px-5 py-2 font-medium">Descripción</th>
               <th className="text-center px-2 py-2 font-medium w-16">Cant.</th>
-              <th className="text-right px-2 py-2 font-medium w-24">P. Unit.</th>
-              <th className="text-right px-5 py-2 font-medium w-24">Total</th>
+              <th className="text-right px-2 py-2 font-medium w-32">P. Unit.</th>
+              <th className="text-right px-5 py-2 font-medium w-32">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -301,7 +308,7 @@ async function handleAgregarPago() {
                     </span>
                   )}
                 </td>
-                <td className="px-5 py-2.5 text-sm text-right font-medium text-gray-700">S/ {Number(it.total).toFixed(2)}</td>
+                <td className="px-5 py-2.5 text-sm text-right font-medium text-gray-700 whitespace-nowrap">S/ {Number(it.total).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>

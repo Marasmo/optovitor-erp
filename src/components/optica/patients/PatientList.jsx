@@ -70,7 +70,7 @@ export default function PatientList({ patients, loading, onSearch, onNew, onSele
               className="px-6 py-4 hover:bg-blue-50 cursor-pointer transition-colors">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-medium text-gray-800">{p.apellidos}, {p.nombres}</p>
+                  <p className="font-medium text-gray-800">{p.nombres} {p.apellidos}</p>
                   <div className="flex items-center gap-4 mt-1">
                     {p.dni && <span className="text-xs text-gray-400">DNI: {p.dni}</span>}
                     {p.fecha_nac && (

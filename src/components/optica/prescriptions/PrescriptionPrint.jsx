@@ -251,34 +251,42 @@ export default function PrescriptionPrint({
 
       {/* Visión cercana — solo si hay ADD */}
       {tieneAdd && (
-        <>
-          <div className="t-section">Visión Cercana</div>
-          <table className="t-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>ADD</th>
-                {dipCerca && <th>DIP</th>}
-                <th>A.V.</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>OD</td>
-                <td>{formatDiopt(add)}</td>
-                {dipCerca && <td>{dipCerca}</td>}
-                <td>{od.av_vp || '—'}</td>
-              </tr>
-              <tr>
-                <td>OI</td>
-                <td>{formatDiopt(add)}</td>
-                {dipCerca && <td>{dipCerca}</td>}
-                <td>{oi.av_vp || '—'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </>
-      )}
+  <>
+    <div className="t-section">Visión Cercana</div>
+    <table className="t-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>ESF</th>
+          <th>CIL</th>
+          <th>EJE</th>
+          {dipCerca && <th>DIP</th>}
+          <th>A.V.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {[
+          { label: 'OD', med: od },
+          { label: 'OI', med: oi }
+        ].map(({ label, med }) => {
+          const esfCerca = med?.ref_esfera !== null && med?.ref_esfera !== undefined
+            ? parseFloat(med.ref_esfera) + parseFloat(add)
+            : null
+          return (
+            <tr key={label}>
+              <td>{label}</td>
+              <td>{formatDiopt(esfCerca)}</td>
+              <td>{formatDiopt(med?.ref_cilindro)}</td>
+              <td>{formatEje(med?.ref_eje)}</td>
+              {dipCerca && <td>{dipCerca}</td>}
+              <td>{med?.av_vp || '—'}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  </>
+)}
 
       {/* DIP general */}
       {dip && (

@@ -307,31 +307,43 @@ export default function ExamenDetailPage() {
         </div>
 
         {tieneAdd && (
-          <div className="px-5 pt-3 pb-4 border-t border-purple-100 bg-purple-50/40">
-            <span className="text-xs font-bold text-purple-700 uppercase tracking-wide block mb-3">Visión Cercana</span>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-purple-600 text-white text-xs">
-                  <th className="py-2 pl-3 pr-2 text-left rounded-tl-lg w-12"></th>
-                  <th className="py-2 px-3">ADD</th>
-                  {dipCerca && <th className="py-2 px-3">DIP Cerca</th>}
-                  <th className="py-2 px-3 rounded-tr-lg">A.V. Cerca</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[{ label: 'OD', color: 'text-blue-700', av: od?.av_vp }, { label: 'OI', color: 'text-purple-700', av: oi?.av_vp }].map(({ label, color, av }) => (
-                  <tr key={label} className="border-t border-purple-100">
-                    <td className="py-2.5 pl-3 pr-2"><span className={`text-xs font-bold ${color}`}>{label}</span></td>
-                    <td className="py-2.5 px-3 text-center text-sm font-medium text-purple-700">{formatDiopt(add)}</td>
-                    {dipCerca && <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{dipCerca} mm</td>}
-                    <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{av || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {dipCerca && <p className="text-xs text-gray-400 mt-2">* DIP cerca = DIP lejos − 2mm</p>}
-          </div>
-        )}
+  <div className="px-5 pt-3 pb-4 border-t border-purple-100 bg-purple-50/40">
+    <span className="text-xs font-bold text-purple-700 uppercase tracking-wide block mb-3">Visión Cercana</span>
+    <table className="w-full">
+      <thead>
+        <tr className="bg-purple-600 text-white text-xs">
+          <th className="py-2 pl-3 pr-2 text-left rounded-tl-lg w-12"></th>
+          <th className="py-2 px-3">ESF.</th>
+          <th className="py-2 px-3">CIL.</th>
+          <th className="py-2 px-3">EJE</th>
+          {dipCerca && <th className="py-2 px-3">DIP</th>}
+          <th className="py-2 px-3 rounded-tr-lg">A.V.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {[
+          { label: 'OD', color: 'text-blue-700', med: od },
+          { label: 'OI', color: 'text-purple-700', med: oi }
+        ].map(({ label, color, med }) => {
+          const esfCerca = med?.ref_esfera !== null && med?.ref_esfera !== undefined
+            ? parseFloat(med.ref_esfera) + parseFloat(add)
+            : null
+          return (
+            <tr key={label} className="border-t border-purple-100">
+              <td className="py-2.5 pl-3 pr-2"><span className={`text-xs font-bold ${color}`}>{label}</span></td>
+              <td className="py-2.5 px-3 text-center text-sm font-medium text-purple-700">{formatDiopt(esfCerca)}</td>
+              <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{formatDiopt(med?.ref_cilindro)}</td>
+              <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{formatEje(med?.ref_eje)}</td>
+              {dipCerca && <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{dipCerca} mm</td>}
+              <td className="py-2.5 px-3 text-center text-sm font-medium text-gray-700">{med?.av_vp || '—'}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+    {dipCerca && <p className="text-xs text-gray-400 mt-2">* DIP cerca = DIP lejos − 2mm</p>}
+  </div>
+)}
       </div>
 
       {/* Observaciones */}

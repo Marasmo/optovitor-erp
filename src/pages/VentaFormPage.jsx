@@ -3,13 +3,10 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ArrowLeft, Search, Plus, Trash2, Save, User, Eye, Sparkles, Tag, Package } from 'lucide-react'
 
-// Formatea céntimos a "S/ 123.45"
 function formatSoles(centimos) {
   return `S/ ${(centimos / 100).toFixed(2)}`
 }
 
-// Calcula subtotal/igv/total de una línea (replica la función SQL en JS
-// para mostrar el preview en vivo antes de guardar)
 function calcularLinea(precioUnitarioCentimos, cantidad, tipoAfectacion) {
   const total = Math.round(precioUnitarioCentimos * cantidad)
   if (tipoAfectacion === '10') {
@@ -20,9 +17,6 @@ function calcularLinea(precioUnitarioCentimos, cantidad, tipoAfectacion) {
   return { subtotal: total, igv: 0, total }
 }
 
-// Convierte un input de soles (string, ej "45.50") a céntimos enteros
-// Todos los roles pueden editar el precio unitario libremente.
-// Además existe el botón "Descuento" para aplicar un monto fijo en soles.
 function puedeEditarPrecio(role) {
   return true
 }
@@ -32,20 +26,6 @@ function solesToCentimos(value) {
   if (isNaN(n)) return 0
   return Math.round(n * 100)
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// Lógica del cotizador de Óptica Juliaca:
-// La serie de precio depende del CILINDRO (no de la esfera).
-//   |cilindro| <= 2.00         -> Serie 1
-//   2.00 < |cilindro| <= 4.00  -> Serie 2
-//   4.00 < |cilindro| <= 6.00  -> Serie 3
-//   |cilindro| > 6.00 o |esfera| > 6.00 -> Requiere fabricación (sin precio fijo)
-//
-// El precio de cada producto "luna" en el catálogo trae en su `descripcion`
-// los 3 precios (Serie 1/2/3) en formato:
-//   "... Serie 1 (Cil. ≤ 2.00). Serie 2 (2.25–4.00): S/110. Serie 3 (4.25–6.00): S/130."
-// La función parsearPreciosSeries() extrae esos 3 valores de la descripción.
-// ─────────────────────────────────────────────────────────────────────────
 
 function calcularSerie(esfera, cilindro) {
   const magEsfera = Math.abs(parseFloat(esfera) || 0)
@@ -63,9 +43,6 @@ function calcularSerie(esfera, cilindro) {
   return { serie: 3, label: 'Serie 3 (Cil. 4.25 a 6.00)' }
 }
 
-// Extrae los precios de Serie 1/2/3 desde la descripción del producto.
-// Serie 1 = precio_sugerido (ya está en la columna numérica).
-// Serie 2 y 3 se parsean de la descripción con regex.
 function parsearPreciosSeries(producto) {
   const serie1 = producto.precio_sugerido
   const desc = producto.descripcion || ''
@@ -80,9 +57,60 @@ function parsearPreciosSeries(producto) {
   }
 }
 
+// Tarjeta de luna sugerida — reutilizable para Premium y Estándar
+function LunaSugeridaCard({ luna, sugerenciasLunas, onAdd, variant }) {
+  const precios = parsearPreciosSeries(luna)
+  const { od, oi } = sugerenciasLunas
+  const precioOD = od.serie ? precios[od.serie] : null
+  const precioOI = oi.serie ? precios[oi.serie] : null
+  const total = (precioOD || 0) + (precioOI || 0)
+  const fueraDeRango = !od.serie && !oi.serie
+
+  const nombreMostrado = variant === 'premium'
+    ? luna.nombre.replace(/ Premium$/i, '')
+    : luna.nombre
+
+  const cardClass = variant === 'premium'
+    ? 'text-left rounded-xl px-3 py-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+    : 'text-left bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 hover:border-orange-400 hover:bg-orange-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+
+  const cardStyle = variant === 'premium'
+    ? { backgroundColor: '#FCE9A8', border: '1.5px solid #D4A017' }
+    : undefined
+
+  const precioColorClass = variant === 'premium' ? '' : 'text-orange-700'
+  const precioColorStyle = variant === 'premium' ? { color: '#92600a' } : undefined
+
+  return (
+    <button
+      onClick={() => onAdd(luna)}
+      disabled={fueraDeRango}
+      className={cardClass}
+      style={cardStyle}
+      onMouseEnter={e => { if (variant === 'premium' && !fueraDeRango) { e.currentTarget.style.borderColor = '#B8860B'; e.currentTarget.style.backgroundColor = '#F9DE85' } }}
+      onMouseLeave={e => { if (variant === 'premium') { e.currentTarget.style.borderColor = '#D4A017'; e.currentTarget.style.backgroundColor = '#FCE9A8' } }}
+    >
+      <p className="text-sm font-medium text-gray-800">{nombreMostrado}</p>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-xs text-gray-500">
+          {precioOD !== null && `OD S/${precioOD.toFixed(2)}`}
+          {precioOD !== null && precioOI !== null && ' + '}
+          {precioOI !== null && `OI S/${precioOI.toFixed(2)}`}
+          {fueraDeRango && 'Requiere fabricación'}
+        </span>
+        {!fueraDeRango && (
+          <span className={`text-sm font-bold ${precioColorClass}`} style={precioColorStyle}>
+            S/ {total.toFixed(2)}
+          </span>
+        )}
+      </div>
+    </button>
+  )
+}
+
 export default function VentaFormPage() {
   const navigate = useNavigate()
-  const { patientId } = useParams() // si viene desde el perfil del paciente
+  const { patientId } = useParams()
   const [searchParams] = useSearchParams()
   const prescriptionId = searchParams.get('prescriptionId')
 
@@ -106,7 +134,6 @@ export default function VentaFormPage() {
   const [descuentoGlobal, setDescuentoGlobal] = useState('')
   const [showDescuentoGlobal, setShowDescuentoGlobal] = useState(false)
 
-  // Receta vinculada (si viene de "Crear venta" desde una receta)
   const [prescription, setPrescription] = useState(null)
 
   useEffect(() => { init() }, [])
@@ -171,9 +198,6 @@ export default function VentaFormPage() {
     setShowPatientSearch(false)
     setPatientResults([])
     setPatientQuery('')
-    // Si no venimos de una receta específica (?prescriptionId=...),
-    // buscar automáticamente la receta vigente más reciente del paciente
-    // para activar las sugerencias de lunas.
     if (!prescriptionId) {
       cargarUltimaReceta(p.id)
     }
@@ -229,7 +253,6 @@ export default function VentaFormPage() {
     setItems(prev => prev.filter(it => it.tempId !== tempId))
   }
 
-  // ── Sugerencias de lunas según la receta (si hay) ──
   const sugerenciasLunas = useMemo(() => {
     if (!prescription) return null
 
@@ -242,8 +265,17 @@ export default function VentaFormPage() {
     return { od, oi, lunas }
   }, [prescription, productos])
 
-  // Agrega una luna sugerida: una línea por OD y otra por OI, con el
-  // precio de la Serie que corresponda a cada ojo.
+  // Lunas separadas por línea (Premium vs Estándar) — criterio: nombre contiene "premium"
+  const lunasPremium = useMemo(() => {
+    if (!sugerenciasLunas) return []
+    return sugerenciasLunas.lunas.filter(l => l.nombre.toLowerCase().includes('premium'))
+  }, [sugerenciasLunas])
+
+  const lunasEstandar = useMemo(() => {
+    if (!sugerenciasLunas) return []
+    return sugerenciasLunas.lunas.filter(l => !l.nombre.toLowerCase().includes('premium'))
+  }, [sugerenciasLunas])
+
   function addLunaSugerida(producto) {
     const precios = parsearPreciosSeries(producto)
     const { od, oi } = sugerenciasLunas
@@ -253,7 +285,7 @@ export default function VentaFormPage() {
       nuevos.push({
         tempId: crypto.randomUUID(),
         producto_id: producto.id,
-        descripcion: `${producto.nombre} — OD (${od.label})`,
+        descripcion: `${producto.nombre} — OD ${od.label.split('(')[0].trim()}`,
         cantidad: 1,
         precio_unitario: precios[od.serie].toFixed(2),
         tipo_afectacion_igv: producto.tipo_afectacion_igv,
@@ -264,7 +296,7 @@ export default function VentaFormPage() {
       nuevos.push({
         tempId: crypto.randomUUID(),
         producto_id: producto.id,
-        descripcion: `${producto.nombre} — OI (${oi.label})`,
+        descripcion: `${producto.nombre} — OI ${oi.label.split('(')[0].trim()}`,
         cantidad: 1,
         precio_unitario: precios[oi.serie].toFixed(2),
         tipo_afectacion_igv: producto.tipo_afectacion_igv,
@@ -280,7 +312,6 @@ export default function VentaFormPage() {
     setItems(prev => [...prev, ...nuevos])
   }
 
-  // Totales calculados en vivo (céntimos)
   const totales = useMemo(() => {
     const descuentoGlobalCentimos = solesToCentimos(descuentoGlobal || '0')
     let subtotal = 0, igv = 0, total = 0
@@ -291,8 +322,6 @@ export default function VentaFormPage() {
       let precioCentimos = solesToCentimos(it.precio_unitario)
 
       if (isLast && cantidad > 0) {
-        // Resta el descuento global del precio unitario de la última línea
-        // (se reparte sobre el total de esa línea: total_linea - descuento)
         const totalLineaBase = Math.round(precioCentimos * cantidad)
         const totalLineaConDescuento = Math.max(0, totalLineaBase - descuentoGlobalCentimos)
         precioCentimos = Math.round(totalLineaConDescuento / cantidad)
@@ -350,12 +379,6 @@ export default function VentaFormPage() {
 
       if (ventaError) throw ventaError
 
-      // precio_unitario_centimos guarda el precio BASE / de catálogo
-      // (sin descuento). El descuento GLOBAL de la venta se aplica
-      // únicamente sobre la ÚLTIMA línea, guardado en su
-      // descuento_centimos (por unidad). Los triggers de la base de
-      // datos calculan subtotal/igv/total sobre
-      // (precio_unitario - descuento) * cantidad.
       const descuentoGlobalCentimos = solesToCentimos(descuentoGlobal || '0')
 
       const itemsPayload = items.map((it, idx) => {
@@ -363,8 +386,6 @@ export default function VentaFormPage() {
         const cantidad = parseFloat(it.cantidad) || 1
         const isLast = idx === items.length - 1
 
-        // El descuento se guarda como monto POR UNIDAD para que
-        // (precio_unitario - descuento) * cantidad reste el total correcto.
         const descuentoPorUnidad = (isLast && cantidad > 0)
           ? Math.round(descuentoGlobalCentimos / cantidad)
           : 0
@@ -419,7 +440,9 @@ export default function VentaFormPage() {
 
       {/* Cliente */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Cliente</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide mb-3 text-amber-700 flex items-center gap-1.5">
+  <Plus size={13} /> Agregar producto o servicio
+</h3>
 
         {patient && !showPatientSearch ? (
           <div className="flex items-center justify-between bg-amber-50 rounded-xl px-4 py-3">
@@ -473,7 +496,7 @@ export default function VentaFormPage() {
         )}
       </div>
 
-      {/* Sugerencias de lunas según receta */}
+      {/* Sugerencias de lunas según receta — separadas Premium / Estándar */}
       {sugerenciasLunas && (
         <div className="bg-amber-50/60 rounded-2xl border border-amber-100 p-5">
           <div className="flex items-center justify-between mb-1">
@@ -489,7 +512,6 @@ export default function VentaFormPage() {
                   Receta del {new Date(prescription.fecha_emision + 'T00:00:00').toLocaleDateString('es-PE')}
                 </span>
               )}
-              {/* Solo permitir ocultar si la receta se autodetectó (no vino fija por URL) */}
               {!prescriptionId && (
                 <button
                   onClick={() => setPrescription(null)}
@@ -500,7 +522,7 @@ export default function VentaFormPage() {
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 text-xs text-gray-600 mb-3">
+          <div className="flex flex-wrap gap-3 text-xs text-gray-600 mb-4">
             <span className="flex items-center gap-1">
               <Eye size={12} className="text-blue-600" /> OD: {sugerenciasLunas.od.label}
             </span>
@@ -509,41 +531,47 @@ export default function VentaFormPage() {
             </span>
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-2">
-            {sugerenciasLunas.lunas.map(luna => {
-              const precios = parsearPreciosSeries(luna)
-              const { od, oi } = sugerenciasLunas
-              const precioOD = od.serie ? precios[od.serie] : null
-              const precioOI = oi.serie ? precios[oi.serie] : null
-              const total = (precioOD || 0) + (precioOI || 0)
-              const fueraDeRango = !od.serie && !oi.serie
+          {/* ── Lunas Premium (dorado) ── */}
+          {lunasPremium.length > 0 && (
+            <div className="mb-4">
+              <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: '#92600a' }}>
+                Premium ⭐⭐⭐⭐⭐
+              </p>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {lunasPremium.map(luna => (
+                  <LunaSugeridaCard
+                    key={luna.id}
+                    luna={luna}
+                    sugerenciasLunas={sugerenciasLunas}
+                    onAdd={addLunaSugerida}
+                    variant="premium"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-              return (
-                <button
-                  key={luna.id}
-                  onClick={() => addLunaSugerida(luna)}
-                  disabled={fueraDeRango}
-                  className="text-left bg-white border border-amber-100 rounded-xl px-3 py-2.5 hover:border-amber-300 hover:bg-amber-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <p className="text-sm font-medium text-gray-800">{luna.nombre}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-gray-400">
-                      {precioOD !== null && `OD S/${precioOD.toFixed(2)}`}
-                      {precioOD !== null && precioOI !== null && ' + '}
-                      {precioOI !== null && `OI S/${precioOI.toFixed(2)}`}
-                      {fueraDeRango && 'Requiere fabricación'}
-                    </span>
-                    {!fueraDeRango && (
-                      <span className="text-sm font-bold text-amber-700">
-                        S/ {total.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-          <p className="text-[10px] text-gray-400 mt-2">
+          {/* ── Lunas Estándar (naranja) ── */}
+          {lunasEstandar.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide mb-2 text-orange-600">
+                Estándar ⭐
+              </p>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {lunasEstandar.map(luna => (
+                  <LunaSugeridaCard
+                    key={luna.id}
+                    luna={luna}
+                    sugerenciasLunas={sugerenciasLunas}
+                    onAdd={addLunaSugerida}
+                    variant="estandar"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-[10px] text-gray-400 mt-3">
             Click para agregar OD y OI como líneas separadas (precio editable según descuento)
           </p>
         </div>
