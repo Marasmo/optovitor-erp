@@ -58,6 +58,13 @@ opticajuliaca: {
     logoLg: '/logo-optica-juliaca.png',
     favicon: '/favicon.ico',
   },
+  'sanjosejuliaca.netlify.app': {
+  sedeId: '39f73c33-c909-4d26-98fa-9281b2ee2849',
+  supabaseUrl: 'https://yuusjxrwjuudcbchgdeu.supabase.co',
+  supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1dXNqeHJ3anV1ZGNiY2hnZGV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwODcwNDIsImV4cCI6MjA5ODY2MzA0Mn0.PPgDCxRPUoqetrXjT4r5m3lgLHIiazpqsi6Y2_agGhw',
+  colors: { primary: '#393185', secondary: '#E32124' },
+  logo: '/logosanjose.png',
+},
 }
 
 function detectTenantId() {
