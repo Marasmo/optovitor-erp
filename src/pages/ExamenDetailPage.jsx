@@ -20,6 +20,7 @@ const proximaCitaLabel = {
 
 function formatDiopt(value) {
   if (value === null || value === undefined || value === '') return null
+  if (String(value).trim().toUpperCase() === 'CP') return 'CP'
   const n = parseFloat(value)
   if (isNaN(n)) return null
   const sign = n > 0 ? '+' : ''
@@ -325,9 +326,9 @@ export default function ExamenDetailPage() {
           { label: 'OD', color: 'text-blue-700', med: od },
           { label: 'OI', color: 'text-purple-700', med: oi }
         ].map(({ label, color, med }) => {
-          const esfCerca = med?.ref_esfera !== null && med?.ref_esfera !== undefined
-            ? parseFloat(med.ref_esfera) + parseFloat(add)
-            : null
+          const esfCerca = (med?.ref_esfera !== null && med?.ref_esfera !== undefined)
+  ? parseFloat(med.ref_esfera) + parseFloat(add)
+  : parseFloat(add)
           return (
             <tr key={label} className="border-t border-purple-100">
               <td className="py-2.5 pl-3 pr-2"><span className={`text-xs font-bold ${color}`}>{label}</span></td>

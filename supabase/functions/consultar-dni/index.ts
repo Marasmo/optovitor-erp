@@ -20,12 +20,12 @@ serve(async (req) => {
       )
     }
 
-    const tokenApidni  = Deno.env.get('APIDNI_TOKEN')  // token de apidni.com
-    const tokenApiperu = Deno.env.get('DNI_TOKEN')      // token de apiperu.dev (fallback)
+    const tokenApidni    = Deno.env.get('APIDNI_TOKEN')
+    const tokenApiperu   = Deno.env.get('DNI_TOKEN')
+    const tokenApisnetpe = Deno.env.get('APISNETPE_TOKEN')
 
     // ─────────────────────────────────────────────────────────────
     // 1️⃣  APIDNI.COM — nombre + fecha nacimiento + sexo + dirección
-    //     Endpoint correcto: GET /api/v2/dni/{dni}
     // ─────────────────────────────────────────────────────────────
     if (tokenApidni) {
       try {
@@ -39,11 +39,9 @@ serve(async (req) => {
 
         const data = await res.json()
 
-        // apidni responde: { respuesta, data, codigo } — codigo 1 = éxito
         if (data.codigo === 1 && data.data) {
           const d = data.data
 
-          // Convertir fecha "17-09-1936" o "17/09/1936" → "1936-09-17"
           let fechaISO = null
           if (d.fecha_nacimiento) {
             const partes = d.fecha_nacimiento.split(/[-\/]/)
@@ -62,15 +60,14 @@ serve(async (req) => {
                 apellido_paterno: d.apellido_paterno ?? '',
                 apellido_materno: d.apellido_materno ?? '',
                 nombre_completo:  `${d.apellido_paterno ?? ''} ${d.apellido_materno ?? ''}, ${d.nombres ?? ''}`.trim(),
-                fecha_nacimiento: fechaISO,           // "YYYY-MM-DD" listo para <input type="date">
-                genero:           d.genero            ?? null, // "M" | "F"
-                direccion:        d.direccion         ?? null,
+                fecha_nacimiento: fechaISO,
+                genero:           d.genero    ?? null,
+                direccion:        d.direccion ?? null,
               }
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
           )
         }
-        // codigo === 0 → no encontrado / error / límite → cae al fallback
         console.error('apidni.com respuesta no exitosa:', data.respuesta)
       } catch (e) {
         console.error('apidni.com falló:', e.message)
@@ -82,7 +79,7 @@ serve(async (req) => {
     // ─────────────────────────────────────────────────────────────
     if (tokenApiperu) {
       try {
-        const res = await fetch('https://apiperu.dev/api/dni', {
+        const res2 = await fetch('https://apiperu.dev/api/dni', {
           method: 'POST',
           headers: {
             'Accept':        'application/json',
@@ -93,10 +90,10 @@ serve(async (req) => {
           signal: AbortSignal.timeout(6000),
         })
 
-        const data = await res.json()
+        const data2 = await res2.json()
 
-        if (data.success && data.data) {
-          const d = data.data
+        if (data2.success && data2.data) {
+          const d = data2.data
           return new Response(
             JSON.stringify({
               success: true,
@@ -120,7 +117,46 @@ serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 3️⃣  Ninguna API encontró el DNI
+    // 3️⃣  DECOLECTA (apis.net.pe) — tercer respaldo
+    // ─────────────────────────────────────────────────────────────
+    if (tokenApisnetpe) {
+      try {
+        const res3 = await fetch(`https://api.decolecta.com/v1/reniec/dni?numero=${dni}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${tokenApisnetpe}`,
+            'Content-Type':  'application/json',
+          },
+          signal: AbortSignal.timeout(6000),
+        })
+
+        const data3 = await res3.json()
+
+        if (data3.first_name) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              fuente: 'apisnetpe',
+              data: {
+                nombres:          data3.first_name       ?? '',
+                apellido_paterno: data3.first_last_name  ?? '',
+                apellido_materno: data3.second_last_name ?? '',
+                nombre_completo:  `${data3.first_last_name ?? ''} ${data3.second_last_name ?? ''}, ${data3.first_name ?? ''}`.trim(),
+                fecha_nacimiento: null,
+                genero:           null,
+                direccion:        null,
+              }
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+          )
+        }
+      } catch (e) {
+        console.error('apis.net.pe falló:', e.message)
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4️⃣  Ninguna API encontró el DNI
     // ─────────────────────────────────────────────────────────────
     return new Response(
       JSON.stringify({ success: false, message: 'DNI no encontrado en ninguna fuente' }),

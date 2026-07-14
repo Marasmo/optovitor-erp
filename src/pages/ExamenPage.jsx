@@ -20,6 +20,18 @@ function NumInput({ value, onChange }) {
   )
 }
 
+function EsfInput({ value, onChange }) {
+  return (
+    <input
+      type="text"
+      inputMode="text"
+      value={value}
+      onChange={onChange}
+      className="w-full border-0 border-b border-gray-300 px-1 py-1.5 text-sm text-center focus:outline-none focus:border-blue-500 bg-transparent"
+    />
+  )
+}
+
 function TextInput({ value, onChange, placeholder = '' }) {
   return (
     <input
@@ -126,10 +138,11 @@ export default function ExamenPage() {
   }
 
   function parseNum(v) {
-    if (v === '' || v === null || v === undefined) return null
-    const n = parseFloat(v)
-    return isNaN(n) ? null : n
-  }
+  if (v === '' || v === null || v === undefined) return null
+  if (String(v).trim().toUpperCase() === 'CP') return 'CP'
+  const n = parseFloat(v)
+  return isNaN(n) ? null : n
+}
 
   function validate() {
     const errs = {}
@@ -182,7 +195,7 @@ async function handleSave(estado = 'borrador') {
       await supabase.from('eye_measurements').upsert({
         exam_id:      examData.id,
         ojo,
-        ref_esfera:   parseNum(med.esf),
+        ref_esfera:   med.esf.trim().toUpperCase() === 'CP' ? 'CP' : parseNum(med.esf),
         ref_cilindro: parseNum(med.cil),
         ref_eje:      parseNum(med.eje),
         ref_adicion:  parseNum(add),
@@ -288,7 +301,7 @@ async function handleSave(estado = 'borrador') {
                     </span>
                   </td>
                   <td className="px-1 py-1">
-                    <NumInput value={med.esf} onChange={e => set('esf', e.target.value)} />
+                    <EsfInput value={med.esf} onChange={e => set('esf', e.target.value)} />
                   </td>
                   <td className="px-1 py-1">
                     <NumInput value={med.cil} onChange={e => {
@@ -445,7 +458,7 @@ async function handleSave(estado = 'borrador') {
           Guardar borrador
         </button>
         <button onClick={() => handleSave('finalizado')} disabled={saving}
-          className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+          className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-black bg-yellow-400 rounded-lg hover:bg-yellow-500 disabled:opacity-50">
           <Save size={15} />
           {saving ? 'Guardando...' : 'Finalizar examen'}
         </button>

@@ -122,28 +122,31 @@ async function handleAgregarPago() {
     // Si es el PRIMER pago → crear trabajo en Dashboard Kanban
     if (esPrimerPago && patient) {
       const { data: { user } } = await supabase.auth.getUser()
-      const { data: trabajo, error: trabajoError } = await supabase
-        .from('trabajos')
-        .insert({
-          id: (() => {
-  const now = new Date()
-  const dia = String(now.getDate()).padStart(2, '0')
-  const mes = String(now.getMonth() + 1).padStart(2, '0')
-  const año = String(now.getFullYear()).slice(-2)
-  const rand = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')
-  return `OV-${dia}${mes}${año}-${rand}`
-})(),
-          cliente: `${patient.apellidos}, ${patient.nombres}`,
-          estado: 'produccion',
-          creado_por: user.id,
-          venta_id: id,
-          activo: true,
-          fecha_display: new Date().toLocaleDateString('es-PE'),
-        })
-        .select()
-        .single()
-      console.log('Trabajo insertado:', trabajo)
-      console.log('Error trabajo:', trabajoError)
+      // Leer directo de Supabase para evitar estado desactualizado
+const { data: ventaFresh } = await supabase
+  .from('ventas')
+  .select('es_pedido_especial')
+  .eq('id', id)
+  .single()
+
+const esPedidoEspecial = ventaFresh?.es_pedido_especial === true
+      const now = new Date()
+      const dia = String(now.getDate()).padStart(2, '0')
+      const mes = String(now.getMonth() + 1).padStart(2, '0')
+      const año = String(now.getFullYear()).slice(-2)
+      const rand = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')
+      const trabajoId = `OV-${dia}${mes}${año}-${rand}`
+
+      await supabase.from('trabajos').insert({
+        id: trabajoId,
+        cliente: `${patient.apellidos}, ${patient.nombres}`,
+        estado: esPedidoEspecial ? 'solicitado' : 'produccion',
+        tipo: esPedidoEspecial ? 'especial' : 'regular',
+        creado_por: user.id,
+        venta_id: id,
+        activo: true,
+        fecha_display: new Date().toLocaleDateString('es-PE'),
+      })
     }
 
     setShowPagoForm(false)

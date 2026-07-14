@@ -30,26 +30,19 @@ function solesToCentimos(value) {
 function calcularSerie(esfera, cilindro) {
   const magEsfera = Math.abs(parseFloat(esfera) || 0)
   const magCilindro = Math.abs(parseFloat(cilindro) || 0)
-
   if (magEsfera > 6.00 || magCilindro > 6.00) {
     return { serie: null, label: 'Requiere fabricación (fuera de rango > 6.00)' }
   }
-  if (magCilindro <= 2.00) {
-    return { serie: 1, label: 'Serie 1 (Cil. ≤ 2.00)' }
-  }
-  if (magCilindro <= 4.00) {
-    return { serie: 2, label: 'Serie 2 (Cil. 2.25 a 4.00)' }
-  }
+  if (magCilindro <= 2.00) return { serie: 1, label: 'Serie 1 (Cil. ≤ 2.00)' }
+  if (magCilindro <= 4.00) return { serie: 2, label: 'Serie 2 (Cil. 2.25 a 4.00)' }
   return { serie: 3, label: 'Serie 3 (Cil. 4.25 a 6.00)' }
 }
 
 function parsearPreciosSeries(producto) {
   const serie1 = producto.precio_sugerido
   const desc = producto.descripcion || ''
-
   const m2 = desc.match(/Serie 2[^:]*:\s*S\/\s*([\d.]+)/i)
   const m3 = desc.match(/Serie 3[^:]*:\s*S\/\s*([\d.]+)/i)
-
   return {
     1: serie1,
     2: m2 ? parseFloat(m2[1]) : serie1,
@@ -57,7 +50,6 @@ function parsearPreciosSeries(producto) {
   }
 }
 
-// Tarjeta de luna sugerida — reutilizable para Premium y Estándar
 function LunaSugeridaCard({ luna, sugerenciasLunas, onAdd, variant }) {
   const precios = parsearPreciosSeries(luna)
   const { od, oi } = sugerenciasLunas
@@ -140,7 +132,6 @@ export default function VentaFormPage() {
 
   async function init() {
     setLoading(true)
-
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: profile } = await supabase
@@ -151,7 +142,6 @@ export default function VentaFormPage() {
       setSedeId(profile?.sede_id || null)
       setUserRole(profile?.roles?.nombre || null)
     }
-
     const { data: prods } = await supabase
       .from('productos')
       .select('*')
@@ -198,9 +188,7 @@ export default function VentaFormPage() {
     setShowPatientSearch(false)
     setPatientResults([])
     setPatientQuery('')
-    if (!prescriptionId) {
-      cargarUltimaReceta(p.id)
-    }
+    if (!prescriptionId) cargarUltimaReceta(p.id)
   }
 
   async function cargarUltimaReceta(pacienteId) {
@@ -212,12 +200,8 @@ export default function VentaFormPage() {
       .order('fecha_emision', { ascending: false })
       .limit(1)
       .maybeSingle()
-
-    if (!error && data) {
-      setPrescription(data)
-    } else {
-      setPrescription(null)
-    }
+    if (!error && data) setPrescription(data)
+    else setPrescription(null)
   }
 
   function addProducto(producto, precioOverride = null, descripcionExtra = '') {
@@ -255,17 +239,13 @@ export default function VentaFormPage() {
 
   const sugerenciasLunas = useMemo(() => {
     if (!prescription) return null
-
     const lunas = productos.filter(p => p.categoria === 'luna')
     if (lunas.length === 0) return null
-
     const od = calcularSerie(prescription.od_esfera, prescription.od_cilindro)
     const oi = calcularSerie(prescription.oi_esfera, prescription.oi_cilindro)
-
     return { od, oi, lunas }
   }, [prescription, productos])
 
-  // Lunas separadas por línea (Premium vs Estándar) — criterio: nombre contiene "premium"
   const lunasPremium = useMemo(() => {
     if (!sugerenciasLunas) return []
     return sugerenciasLunas.lunas.filter(l => l.nombre.toLowerCase().includes('premium'))
@@ -279,7 +259,6 @@ export default function VentaFormPage() {
   function addLunaSugerida(producto) {
     const precios = parsearPreciosSeries(producto)
     const { od, oi } = sugerenciasLunas
-
     const nuevos = []
     if (od.serie) {
       nuevos.push({
@@ -303,36 +282,30 @@ export default function VentaFormPage() {
         unidad_medida: producto.unidad_medida,
       })
     }
-
     if (nuevos.length === 0) {
       alert('La graduación de este paciente excede el rango de stock (>6.00) y requiere fabricación especial. Agrega el ítem manualmente con el precio acordado.')
       return
     }
-
     setItems(prev => [...prev, ...nuevos])
   }
 
   const totales = useMemo(() => {
     const descuentoGlobalCentimos = solesToCentimos(descuentoGlobal || '0')
     let subtotal = 0, igv = 0, total = 0
-
     items.forEach((it, idx) => {
       const isLast = idx === items.length - 1
       const cantidad = parseFloat(it.cantidad) || 0
       let precioCentimos = solesToCentimos(it.precio_unitario)
-
       if (isLast && cantidad > 0) {
         const totalLineaBase = Math.round(precioCentimos * cantidad)
         const totalLineaConDescuento = Math.max(0, totalLineaBase - descuentoGlobalCentimos)
         precioCentimos = Math.round(totalLineaConDescuento / cantidad)
       }
-
       const r = calcularLinea(precioCentimos, cantidad, it.tipo_afectacion_igv)
       subtotal += r.subtotal
       igv += r.igv
       total += r.total
     })
-
     return { subtotal, igv, total, descuentoGlobalCentimos }
   }, [items, descuentoGlobal])
 
@@ -341,25 +314,14 @@ export default function VentaFormPage() {
   )
 
   async function handleGuardar() {
-    if (!patient) {
-      alert('Selecciona un paciente/cliente')
-      return
-    }
-    if (items.length === 0) {
-      alert('Agrega al menos un producto o servicio')
-      return
-    }
+    if (!patient) { alert('Selecciona un paciente/cliente'); return }
+    if (items.length === 0) { alert('Agrega al menos un producto o servicio'); return }
     for (const it of items) {
-      if (!it.descripcion.trim()) {
-        alert('Todos los ítems deben tener una descripción')
-        return
-      }
+      if (!it.descripcion.trim()) { alert('Todos los ítems deben tener una descripción'); return }
     }
-
     setSaving(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-
       const { data: venta, error: ventaError } = await supabase
         .from('ventas')
         .insert({
@@ -376,20 +338,16 @@ export default function VentaFormPage() {
         })
         .select()
         .single()
-
       if (ventaError) throw ventaError
 
       const descuentoGlobalCentimos = solesToCentimos(descuentoGlobal || '0')
-
       const itemsPayload = items.map((it, idx) => {
         const precioBase = solesToCentimos(it.precio_unitario)
         const cantidad = parseFloat(it.cantidad) || 1
         const isLast = idx === items.length - 1
-
         const descuentoPorUnidad = (isLast && cantidad > 0)
           ? Math.round(descuentoGlobalCentimos / cantidad)
           : 0
-
         return {
           venta_id: venta.id,
           producto_id: it.producto_id,
@@ -401,13 +359,8 @@ export default function VentaFormPage() {
           unidad_medida: it.unidad_medida,
         }
       })
-
-      const { error: itemsError } = await supabase
-        .from('venta_items')
-        .insert(itemsPayload)
-
+      const { error: itemsError } = await supabase.from('venta_items').insert(itemsPayload)
       if (itemsError) throw itemsError
-
       navigate(`/ventas/${venta.id}`)
     } catch (err) {
       alert('Error al guardar la venta: ' + err.message)
@@ -416,9 +369,7 @@ export default function VentaFormPage() {
   }
 
   if (loading) return (
-    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">
-      Cargando...
-    </div>
+    <div className="flex items-center justify-center h-screen text-gray-400 text-sm">Cargando...</div>
   )
 
   return (
@@ -440,10 +391,7 @@ export default function VentaFormPage() {
 
       {/* Cliente */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h3 className="text-xs font-semibold uppercase tracking-wide mb-3 text-amber-700 flex items-center gap-1.5">
-  <Plus size={13} /> Agregar producto o servicio
-</h3>
-
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Cliente</h3>
         {patient && !showPatientSearch ? (
           <div className="flex items-center justify-between bg-amber-50 rounded-xl px-4 py-3">
             <div className="flex items-center gap-3">
@@ -458,10 +406,7 @@ export default function VentaFormPage() {
               </div>
             </div>
             {!prescriptionId && (
-              <button
-                onClick={() => setShowPatientSearch(true)}
-                className="text-xs text-amber-700 hover:underline"
-              >
+              <button onClick={() => setShowPatientSearch(true)} className="text-xs text-amber-700 hover:underline">
                 Cambiar
               </button>
             )}
@@ -481,11 +426,8 @@ export default function VentaFormPage() {
             {patientResults.length > 0 && (
               <div className="absolute z-10 mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden">
                 {patientResults.map(p => (
-                  <div
-                    key={p.id}
-                    onClick={() => selectPatient(p)}
-                    className="px-4 py-2.5 hover:bg-amber-50 cursor-pointer text-sm"
-                  >
+                  <div key={p.id} onClick={() => selectPatient(p)}
+                    className="px-4 py-2.5 hover:bg-amber-50 cursor-pointer text-sm">
                     <span className="font-medium text-gray-800">{p.apellidos}, {p.nombres}</span>
                     {p.dni && <span className="text-xs text-gray-400 ml-2">DNI: {p.dni}</span>}
                   </div>
@@ -496,7 +438,7 @@ export default function VentaFormPage() {
         )}
       </div>
 
-      {/* Sugerencias de lunas según receta — separadas Premium / Estándar */}
+      {/* Sugerencias de lunas */}
       {sugerenciasLunas && (
         <div className="bg-amber-50/60 rounded-2xl border border-amber-100 p-5">
           <div className="flex items-center justify-between mb-1">
@@ -513,10 +455,8 @@ export default function VentaFormPage() {
                 </span>
               )}
               {!prescriptionId && (
-                <button
-                  onClick={() => setPrescription(null)}
-                  className="text-[10px] text-gray-400 hover:text-gray-600 underline"
-                >
+                <button onClick={() => setPrescription(null)}
+                  className="text-[10px] text-gray-400 hover:text-gray-600 underline">
                   Ocultar
                 </button>
               )}
@@ -531,7 +471,6 @@ export default function VentaFormPage() {
             </span>
           </div>
 
-          {/* ── Lunas Premium (dorado) ── */}
           {lunasPremium.length > 0 && (
             <div className="mb-4">
               <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: '#92600a' }}>
@@ -539,19 +478,12 @@ export default function VentaFormPage() {
               </p>
               <div className="grid sm:grid-cols-2 gap-2">
                 {lunasPremium.map(luna => (
-                  <LunaSugeridaCard
-                    key={luna.id}
-                    luna={luna}
-                    sugerenciasLunas={sugerenciasLunas}
-                    onAdd={addLunaSugerida}
-                    variant="premium"
-                  />
+                  <LunaSugeridaCard key={luna.id} luna={luna} sugerenciasLunas={sugerenciasLunas} onAdd={addLunaSugerida} variant="premium" />
                 ))}
               </div>
             </div>
           )}
 
-          {/* ── Lunas Estándar (naranja) ── */}
           {lunasEstandar.length > 0 && (
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-2 text-orange-600">
@@ -559,13 +491,7 @@ export default function VentaFormPage() {
               </p>
               <div className="grid sm:grid-cols-2 gap-2">
                 {lunasEstandar.map(luna => (
-                  <LunaSugeridaCard
-                    key={luna.id}
-                    luna={luna}
-                    sugerenciasLunas={sugerenciasLunas}
-                    onAdd={addLunaSugerida}
-                    variant="estandar"
-                  />
+                  <LunaSugeridaCard key={luna.id} luna={luna} sugerenciasLunas={sugerenciasLunas} onAdd={addLunaSugerida} variant="estandar" />
                 ))}
               </div>
             </div>
@@ -577,9 +503,14 @@ export default function VentaFormPage() {
         </div>
       )}
 
-      {/* Catálogo de productos */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Agregar producto o servicio</h3>
+      {/* Catálogo de productos — botón resaltado */}
+      <div className="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 bg-amber-500 text-white px-3 py-1.5 rounded-lg shadow-sm">
+            <Plus size={14} />
+            <span className="text-xs font-bold uppercase tracking-wide">Agregar producto o servicio</span>
+          </div>
+        </div>
         <div className="relative mb-3">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -596,28 +527,21 @@ export default function VentaFormPage() {
               <p className="text-xs text-gray-400 text-center py-4">Sin resultados</p>
             ) : (
               productosFiltrados.map(p => (
-                <div
-                  key={p.id}
-                  onClick={() => addProducto(p)}
-                  className="flex items-center justify-between px-4 py-2.5 hover:bg-amber-50 cursor-pointer border-b border-gray-50 last:border-0"
-                >
+                <div key={p.id} onClick={() => addProducto(p)}
+                  className="flex items-center justify-between px-4 py-2.5 hover:bg-amber-50 cursor-pointer border-b border-gray-50 last:border-0">
                   <div>
                     <p className="text-sm text-gray-800">{p.nombre}</p>
                     <p className="text-xs text-gray-400 capitalize">{p.categoria}</p>
                   </div>
-                  <span className="text-sm font-medium text-gray-600">
-                    S/ {p.precio_sugerido.toFixed(2)}
-                  </span>
+                  <span className="text-sm font-medium text-gray-600">S/ {p.precio_sugerido.toFixed(2)}</span>
                 </div>
               ))
             )}
           </div>
         )}
 
-        <button
-          onClick={addItemLibre}
-          className="flex items-center gap-2 text-xs text-amber-700 hover:underline"
-        >
+        <button onClick={addItemLibre}
+          className="flex items-center gap-2 text-xs text-amber-700 hover:underline">
           <Plus size={14} /> Agregar ítem manual (no está en el catálogo)
         </button>
       </div>
@@ -627,7 +551,6 @@ export default function VentaFormPage() {
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
           Detalle de la venta ({items.length})
         </h3>
-
         {items.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-6">
             Agrega productos o servicios desde el catálogo arriba
@@ -639,7 +562,6 @@ export default function VentaFormPage() {
               const precioCentimos = solesToCentimos(it.precio_unitario)
               const cantidad = parseFloat(it.cantidad) || 0
               const r = calcularLinea(precioCentimos, cantidad, it.tipo_afectacion_igv)
-
               return (
                 <div key={it.tempId} className="border border-gray-100 rounded-xl p-3">
                   <div className="flex items-start gap-2">
@@ -649,41 +571,28 @@ export default function VentaFormPage() {
                       placeholder="Descripción del producto/servicio"
                       className="flex-1 text-sm border-0 border-b border-gray-200 px-1 py-1 focus:outline-none focus:border-amber-400 bg-transparent font-medium"
                     />
-                    <button
-                      onClick={() => removeItem(it.tempId)}
-                      className="p-1 text-gray-300 hover:text-red-500 shrink-0"
-                    >
+                    <button onClick={() => removeItem(it.tempId)}
+                      className="p-1 text-gray-300 hover:text-red-500 shrink-0">
                       <Trash2 size={15} />
                     </button>
                   </div>
-
                   <div className="grid grid-cols-3 gap-3 mt-2">
                     <div>
                       <label className="block text-[10px] text-gray-400 mb-0.5">Cantidad</label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={it.cantidad}
+                      <input type="text" inputMode="decimal" value={it.cantidad}
                         onChange={e => updateItem(it.tempId, 'cantidad', e.target.value)}
-                        className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
-                      />
+                        className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-center focus:outline-none focus:ring-2 focus:ring-amber-400" />
                     </div>
                     <div>
                       <label className="block text-[10px] text-gray-400 mb-0.5">
                         Precio unit. (S/) {!editable && '🔒'}
                       </label>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={it.precio_unitario}
+                      <input type="text" inputMode="decimal" value={it.precio_unitario}
                         onChange={e => updateItem(it.tempId, 'precio_unitario', e.target.value)}
                         readOnly={!editable}
                         className={`w-full text-sm border rounded-lg px-2 py-1.5 text-center focus:outline-none ${
-                          editable
-                            ? 'border-gray-200 focus:ring-2 focus:ring-amber-400'
-                            : 'border-gray-100 bg-gray-50 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
+                          editable ? 'border-gray-200 focus:ring-2 focus:ring-amber-400' : 'border-gray-100 bg-gray-50 text-gray-500 cursor-not-allowed'
+                        }`} />
                     </div>
                     <div>
                       <label className="block text-[10px] text-gray-400 mb-0.5">Total línea</label>
@@ -704,9 +613,7 @@ export default function VentaFormPage() {
         <button
           onClick={() => setEsPedidoEspecial(prev => !prev)}
           className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-colors ${
-            esPedidoEspecial
-              ? 'bg-emerald-50 border-emerald-300'
-              : 'bg-white border-gray-200 hover:border-emerald-200'
+            esPedidoEspecial ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-gray-200 hover:border-emerald-200'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -719,9 +626,7 @@ export default function VentaFormPage() {
               <p className={`text-sm font-medium ${esPedidoEspecial ? 'text-emerald-800' : 'text-gray-700'}`}>
                 Pedido especial
               </p>
-              <p className="text-xs text-gray-400">
-                Lunas que requieren fabricación o pedido fuera de stock
-              </p>
+              <p className="text-xs text-gray-400">Lunas que requieren fabricación o pedido fuera de stock</p>
             </div>
           </div>
           <div className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${
@@ -755,26 +660,20 @@ export default function VentaFormPage() {
                 <Tag size={14} className="text-green-600" />
                 <span className="text-gray-500">Descuento:</span>
                 <input
-                  type="text"
-                  inputMode="decimal"
-                  autoFocus
+                  type="text" inputMode="decimal" autoFocus
                   value={descuentoGlobal}
                   onChange={e => setDescuentoGlobal(e.target.value)}
                   placeholder="0.00"
                   className="w-20 text-sm border border-green-200 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-green-300"
                 />
-                <button
-                  onClick={() => { setShowDescuentoGlobal(false); setDescuentoGlobal('') }}
-                  className="text-xs text-gray-400 hover:text-red-500"
-                >
+                <button onClick={() => { setShowDescuentoGlobal(false); setDescuentoGlobal('') }}
+                  className="text-xs text-gray-400 hover:text-red-500">
                   Quitar
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setShowDescuentoGlobal(true)}
-                className="flex items-center gap-1.5 text-xs text-green-700 hover:underline"
-              >
+              <button onClick={() => setShowDescuentoGlobal(true)}
+                className="flex items-center gap-1.5 text-xs text-green-700 hover:underline">
                 <Tag size={13} /> Aplicar descuento
               </button>
             )}
@@ -783,11 +682,8 @@ export default function VentaFormPage() {
               <span className="font-bold text-lg text-amber-700">{formatSoles(totales.total)}</span>
             </div>
           </div>
-          <button
-            onClick={handleGuardar}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50"
-          >
+          <button onClick={handleGuardar} disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50">
             <Save size={16} />
             {saving ? 'Guardando...' : 'Guardar venta'}
           </button>

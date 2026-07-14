@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 
-// -0.5 → "-0.50" · -1 → "-1.00" · +1.25 → "+1.25" · 0 → "0.00"
 function formatDiopt(value) {
   if (value === null || value === undefined || value === '') return '—'
   const n = parseFloat(value)
@@ -20,23 +19,6 @@ const proximaCitaLabel = {
   '1a': '1 año',
 }
 
-/**
- * PrescriptionPrint — Receta para impresora térmica de 58mm
- *
- * Uso:
- *   <PrescriptionPrint
- *     sede={{ nombre, direccion, telefono }}
- *     patient={{ nombres, apellidos, dni, edad }}
- *     exam={{ fecha, tipo_examen }}
- *     od={{...}} oi={{...}}
- *     dip="62" add="1.00"
- *     recomendaciones="..." proximaCita="1a"
- *     optometrista={{ nombres, apellidos }}
- *   />
- *
- * Para imprimir: llamar a window.print() desde el componente padre,
- * por ejemplo con un botón "Imprimir".
- */
 export default function PrescriptionPrint({
   sede = {},
   patient = {},
@@ -61,7 +43,6 @@ export default function PrescriptionPrint({
   return (
     <div className="ticket-58mm">
       <style>{`
-        /* ====== Estilos para PANTALLA (preview) ====== */
         .ticket-58mm {
           width: 58mm;
           margin: 0 auto;
@@ -76,105 +57,29 @@ export default function PrescriptionPrint({
           box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
         .ticket-58mm * { box-sizing: border-box; }
-
         .t-center { text-align: center; }
         .t-bold   { font-weight: bold; }
-        .t-line   {
-          border-top: 1px dashed #000;
-          margin: 4px 0;
-        }
-        .t-title {
-          font-size: 13px;
-          font-weight: bold;
-          letter-spacing: 0.5px;
-        }
-        .t-sub {
-          font-size: 9px;
-        }
-        .t-section {
-          font-size: 10px;
-          font-weight: bold;
-          text-transform: uppercase;
-          margin: 6px 0 2px;
-          border-bottom: 1px solid #000;
-          padding-bottom: 1px;
-        }
-        .t-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 10px;
-        }
-        .t-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 10px;
-          margin-top: 2px;
-        }
-        .t-table th, .t-table td {
-          text-align: center;
-          padding: 1px 2px;
-        }
-        .t-table th {
-          font-size: 9px;
-          font-weight: bold;
-          border-bottom: 1px solid #000;
-        }
-        .t-table td:first-child,
-        .t-table th:first-child {
-          text-align: left;
-          font-weight: bold;
-          width: 18%;
-        }
-        .t-small { font-size: 9px; }
-        .t-rec {
-          font-size: 9px;
-          margin-top: 2px;
-          word-wrap: break-word;
-        }
-        .t-footer {
-          font-size: 8px;
-          text-align: center;
-          margin-top: 6px;
-        }
-        .t-firma {
-          margin-top: 16px;
-          text-align: center;
-        }
-        .t-firma-line {
-          border-top: 1px solid #000;
-          width: 80%;
-          margin: 0 auto 2px;
-        }
-
-        /* ====== Estilos SOLO PARA IMPRESIÓN ====== */
+        .t-line   { border-top: 1px dashed #000; margin: 4px 0; }
+        .t-title  { font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
+        .t-sub    { font-size: 9px; }
+        .t-section { font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px; border-bottom: 1px solid #000; padding-bottom: 1px; }
+        .t-row    { display: flex; justify-content: space-between; font-size: 10px; }
+        .t-table  { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 2px; }
+        .t-table th, .t-table td { text-align: center; padding: 1px 2px; }
+        .t-table th { font-size: 9px; font-weight: bold; border-bottom: 1px solid #000; }
+        .t-table td:first-child, .t-table th:first-child { text-align: left; font-weight: bold; width: 18%; }
+        .t-small  { font-size: 9px; }
+        .t-rec    { font-size: 9px; margin-top: 2px; word-wrap: break-word; }
+        .t-footer { font-size: 8px; text-align: center; margin-top: 6px; }
+        .t-firma  { margin-top: 16px; text-align: center; }
+        .t-firma-line { border-top: 1px solid #000; width: 80%; margin: 0 auto 2px; }
         @media print {
-          @page {
-            size: 58mm auto;
-            margin: 0;
-          }
-          html, body {
-            width: 58mm;
-            margin: 0;
-            padding: 0;
-          }
-          body * {
-            visibility: hidden;
-          }
-          .ticket-58mm, .ticket-58mm * {
-            visibility: visible;
-          }
-          .ticket-58mm {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 58mm;
-            border: none;
-            box-shadow: none;
-            padding: 4px 4px;
-          }
-          .no-print {
-            display: none !important;
-          }
+          @page { size: 58mm auto; margin: 0; }
+          html, body { width: 58mm; margin: 0; padding: 0; }
+          body * { visibility: hidden; }
+          .ticket-58mm, .ticket-58mm * { visibility: visible; }
+          .ticket-58mm { position: absolute; left: 0; top: 0; width: 58mm; border: none; box-shadow: none; padding: 4px 4px; }
+          .no-print { display: none !important; }
         }
       `}</style>
 
@@ -187,9 +92,7 @@ export default function PrescriptionPrint({
 
       <div className="t-line" />
 
-      <div className="t-center t-bold" style={{ fontSize: 11 }}>
-        RECETA OPTOMÉTRICA
-      </div>
+      <div className="t-center t-bold" style={{ fontSize: 11 }}>RECETA OPTOMÉTRICA</div>
       <div className="t-row">
         <span>Fecha:</span>
         <span className="t-bold">{fechaFormateada}</span>
@@ -198,9 +101,7 @@ export default function PrescriptionPrint({
       <div className="t-line" />
 
       {/* Datos del paciente */}
-      <div className="t-row">
-        <span>Paciente:</span>
-      </div>
+      <div className="t-row"><span>Paciente:</span></div>
       <div className="t-bold" style={{ fontSize: 11 }}>
         {patient.nombres} {patient.apellidos}
       </div>
@@ -208,6 +109,12 @@ export default function PrescriptionPrint({
         <div className="t-row t-small">
           <span>DNI:</span>
           <span>{patient.dni}</span>
+        </div>
+      )}
+      {patient.telefono && (
+        <div className="t-row t-small">
+          <span>Tel:</span>
+          <span>{patient.telefono}</span>
         </div>
       )}
       {patient.edad && (
@@ -219,17 +126,11 @@ export default function PrescriptionPrint({
 
       <div className="t-line" />
 
-      {/* Graduación visión lejana */}
+      {/* Visión lejana */}
       <div className="t-section">Visión Lejana</div>
       <table className="t-table">
         <thead>
-          <tr>
-            <th></th>
-            <th>ESF</th>
-            <th>CIL</th>
-            <th>EJE</th>
-            <th>A.V.</th>
-          </tr>
+          <tr><th></th><th>ESF</th><th>CIL</th><th>EJE</th><th>A.V.</th></tr>
         </thead>
         <tbody>
           <tr>
@@ -249,46 +150,39 @@ export default function PrescriptionPrint({
         </tbody>
       </table>
 
-      {/* Visión cercana — solo si hay ADD */}
+      {/* Visión cercana */}
       {tieneAdd && (
-  <>
-    <div className="t-section">Visión Cercana</div>
-    <table className="t-table">
-      <thead>
-        <tr>
-          <th></th>
-          <th>ESF</th>
-          <th>CIL</th>
-          <th>EJE</th>
-          {dipCerca && <th>DIP</th>}
-          <th>A.V.</th>
-        </tr>
-      </thead>
-      <tbody>
-        {[
-          { label: 'OD', med: od },
-          { label: 'OI', med: oi }
-        ].map(({ label, med }) => {
-          const esfCerca = med?.ref_esfera !== null && med?.ref_esfera !== undefined
-            ? parseFloat(med.ref_esfera) + parseFloat(add)
-            : null
-          return (
-            <tr key={label}>
-              <td>{label}</td>
-              <td>{formatDiopt(esfCerca)}</td>
-              <td>{formatDiopt(med?.ref_cilindro)}</td>
-              <td>{formatEje(med?.ref_eje)}</td>
-              {dipCerca && <td>{dipCerca}</td>}
-              <td>{med?.av_vp || '—'}</td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
-  </>
-)}
+        <>
+          <div className="t-section">Visión Cercana</div>
+          <table className="t-table">
+            <thead>
+              <tr>
+                <th></th><th>ESF</th><th>CIL</th><th>EJE</th>
+                {dipCerca && <th>DIP</th>}
+                <th>A.V.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[{ label: 'OD', med: od }, { label: 'OI', med: oi }].map(({ label, med }) => {
+                const esfCerca = (med?.ref_esfera !== null && med?.ref_esfera !== undefined)
+                  ? parseFloat(med.ref_esfera) + parseFloat(add)
+                  : parseFloat(add)
+                return (
+                  <tr key={label}>
+                    <td>{label}</td>
+                    <td>{formatDiopt(esfCerca)}</td>
+                    <td>{formatDiopt(med?.ref_cilindro)}</td>
+                    <td>{formatEje(med?.ref_eje)}</td>
+                    {dipCerca && <td>{dipCerca}</td>}
+                    <td>{med?.av_vp || '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
 
-      {/* DIP general */}
       {dip && (
         <div className="t-row" style={{ marginTop: 4 }}>
           <span>DIP:</span>
@@ -296,7 +190,6 @@ export default function PrescriptionPrint({
         </div>
       )}
 
-      {/* Recomendaciones */}
       {recomendaciones && (
         <>
           <div className="t-line" />
@@ -305,7 +198,6 @@ export default function PrescriptionPrint({
         </>
       )}
 
-      {/* Próxima cita */}
       {proximaCita && (
         <div className="t-row" style={{ marginTop: 4 }}>
           <span>Próx. control:</span>
@@ -313,13 +205,10 @@ export default function PrescriptionPrint({
         </div>
       )}
 
-      {/* Firma */}
       <div className="t-firma">
         <div className="t-firma-line" />
         <div className="t-small">
-          {optometrista.nombres
-            ? `${optometrista.nombres} ${optometrista.apellidos}`
-            : 'Optometrista'}
+          {optometrista.nombres ? `${optometrista.nombres} ${optometrista.apellidos}` : 'Optometrista'}
         </div>
       </div>
 

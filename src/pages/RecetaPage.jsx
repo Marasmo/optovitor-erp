@@ -269,6 +269,7 @@ export default function RecetaPage() {
             nombres: patient?.nombres,
             apellidos: patient?.apellidos,
             dni: patient?.dni,
+            telefono: patient?.telefono,
             edad: patient?.fecha_nac ? calcularEdad(patient.fecha_nac) : (patient?.edad || null),
           }}
           exam={{ fecha: exam.fecha, tipo_examen: exam.tipo_examen }}

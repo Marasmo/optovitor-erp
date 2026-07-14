@@ -44,7 +44,7 @@ export default function PatientList({ patients, loading, onSearch, onNew, onSele
           <p className="text-sm text-gray-400">{total ?? patients.length} registrados</p>
         </div>
         <button onClick={onNew}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+          className="px-6 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:opacity-50">
           <UserPlus size={16} /> Nuevo paciente
         </button>
       </div>
@@ -70,7 +70,7 @@ export default function PatientList({ patients, loading, onSearch, onNew, onSele
               className="px-6 py-4 hover:bg-blue-50 cursor-pointer transition-colors">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-medium text-gray-800">{p.nombres} {p.apellidos}</p>
+                  <p className="font-medium text-gray-800 uppercase">{p.nombres} {p.apellidos}</p>
                   <div className="flex items-center gap-4 mt-1">
                     {p.dni && <span className="text-xs text-gray-400">DNI: {p.dni}</span>}
                     {p.fecha_nac && (
