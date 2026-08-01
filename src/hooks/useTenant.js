@@ -72,12 +72,36 @@ const TENANTS = {
     logoLg: '/logosanjose.png',
     favicon: '/logosanjose.png',
   },
+  demo: {
+    id: 'demo',
+    sedeId: '11111111-1111-1111-1111-111111111111',
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL_DEMO,
+    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY_DEMO,
+    nombre: 'Optovitor Demo',
+    colores: {
+      primary:        '#0EA5A4',
+      primaryHover:   '#0B8988',
+      primaryLight:   '#ECFDFA',
+      primaryText:    '#0EA5A4',
+      accent:         '#6366F1',
+      accentHover:    '#4F52D9',
+      accentLight:    '#EEF0FF',
+      accentText:     '#3730A3',
+      focusRing:      '#0EA5A4',
+      navActiveBg:    '#ECFDFA',
+      navActiveText:  '#0B8988',
+    },
+    logoSm: '/optovitor-icon.png',
+    logoLg: '/optovitor-logo.png',
+    favicon: '/optovitor-favicon.ico',
+  },
 }
 
 const HOSTNAME_MAP = {
   'optovitor.netlify.app': 'opticajuliaca',
   'sunvision.netlify.app': 'sunvision',
   'optovitorsanjose.netlify.app': 'sanjosejuliaca',
+  'demooptovitor.netlify.app': 'demo',
 }
 
 function detectTenantId() {
