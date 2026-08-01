@@ -102,6 +102,7 @@ const HOSTNAME_MAP = {
   'sunvision.netlify.app': 'sunvision',
   'optovitorsanjose.netlify.app': 'sanjosejuliaca',
   'demooptovitor.netlify.app': 'demo',
+  'demo.optovitor.pe': 'demo',
 }
 
 function detectTenantId() {
