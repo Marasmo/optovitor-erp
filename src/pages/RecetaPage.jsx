@@ -258,8 +258,9 @@ export default function RecetaPage() {
       )}
 
       {/* Vista previa de la receta — esto es lo que se imprime */}
-      <div className="flex justify-center py-4 bg-gray-50 rounded-2xl no-print-bg">
-        <PrescriptionPrint
+      <div className="flex justify-center py-4 bg-gray-50 rounded-2xl no-print-bg overflow-hidden">
+  <div style={{ transform: 'scale(1.8)', transformOrigin: 'top center', marginBottom: '120px' }}>
+    <PrescriptionPrint
           sede={{
             nombre: sede?.nombre,
             direccion: sede?.direccion,
@@ -280,8 +281,9 @@ export default function RecetaPage() {
           recomendaciones={exam.recomendaciones}
           proximaCita={extras.proxima_cita}
           optometrista={optometrista}
-        />
-      </div>
+           />
+  </div>
+</div>
 
       <p className="text-xs text-gray-400 text-center no-print">
         Vista previa — el formato real se ajusta al ancho de la impresora térmica de 58mm

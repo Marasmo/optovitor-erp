@@ -100,62 +100,29 @@ export default function VentaDetailPage() {
     setShowPagoForm(true)
   }
 
-async function handleAgregarPago() {
-  const monto = parseFloat(nuevoMonto)
-  if (isNaN(monto) || monto <= 0) {
-    alert('Ingresa un monto válido')
-    return
-  }
-
-  // Calcular ANTES del await
-  const esPrimerPago = pagos.filter(p => p.estado === 'confirmado').length === 0
-
-  setSavingPago(true)
-  try {
-    const { error } = await supabase.from('venta_pagos').insert({
-      venta_id: id,
-      metodo_pago: nuevoMetodo,
-      monto_centimos: Math.round(monto * 100),
-    })
-    if (error) throw error
-
-    // Si es el PRIMER pago → crear trabajo en Dashboard Kanban
-    if (esPrimerPago && patient) {
-      const { data: { user } } = await supabase.auth.getUser()
-      // Leer directo de Supabase para evitar estado desactualizado
-const { data: ventaFresh } = await supabase
-  .from('ventas')
-  .select('es_pedido_especial')
-  .eq('id', id)
-  .single()
-
-const esPedidoEspecial = ventaFresh?.es_pedido_especial === true
-      const now = new Date()
-      const dia = String(now.getDate()).padStart(2, '0')
-      const mes = String(now.getMonth() + 1).padStart(2, '0')
-      const año = String(now.getFullYear()).slice(-2)
-      const rand = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')
-      const trabajoId = `OV-${dia}${mes}${año}-${rand}`
-
-      await supabase.from('trabajos').insert({
-        id: trabajoId,
-        cliente: `${patient.apellidos}, ${patient.nombres}`,
-        estado: esPedidoEspecial ? 'solicitado' : 'produccion',
-        tipo: esPedidoEspecial ? 'especial' : 'regular',
-        creado_por: user.id,
-        venta_id: id,
-        activo: true,
-        fecha_display: new Date().toLocaleDateString('es-PE'),
-      })
+  async function handleAgregarPago() {
+    const monto = parseFloat(nuevoMonto)
+    if (isNaN(monto) || monto <= 0) {
+      alert('Ingresa un monto válido')
+      return
     }
 
-    setShowPagoForm(false)
-    await fetchData()
-  } catch (err) {
-    alert('Error al registrar el pago: ' + err.message)
+    setSavingPago(true)
+    try {
+      const { error } = await supabase.from('venta_pagos').insert({
+        venta_id: id,
+        metodo_pago: nuevoMetodo,
+        monto_centimos: Math.round(monto * 100),
+      })
+      if (error) throw error
+
+      setShowPagoForm(false)
+      await fetchData()
+    } catch (err) {
+      alert('Error al registrar el pago: ' + err.message)
+    }
+    setSavingPago(false)
   }
-  setSavingPago(false)
-}
 
   async function handleEliminarPago(pagoId) {
     if (!window.confirm('¿Eliminar este pago?')) return
@@ -294,8 +261,8 @@ const esPedidoEspecial = ventaFresh?.es_pedido_especial === true
             <tr className="text-xs text-gray-400 border-b border-gray-50">
               <th className="text-left px-5 py-2 font-medium">Descripción</th>
               <th className="text-center px-2 py-2 font-medium w-16">Cant.</th>
-              <th className="text-right px-2 py-2 font-medium w-32">P. Unit.</th>
-              <th className="text-right px-5 py-2 font-medium w-32">Total</th>
+              <th className="text-right px-2 py-2 font-medium w-24">P. Unit.</th>
+              <th className="text-right px-5 py-2 font-medium w-24">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -311,7 +278,7 @@ const esPedidoEspecial = ventaFresh?.es_pedido_especial === true
                     </span>
                   )}
                 </td>
-                <td className="px-5 py-2.5 text-sm text-right font-medium text-gray-700 whitespace-nowrap">S/ {Number(it.total).toFixed(2)}</td>
+                <td className="px-5 py-2.5 text-sm text-right font-medium text-gray-700">S/ {Number(it.total).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -345,14 +312,14 @@ const esPedidoEspecial = ventaFresh?.es_pedido_especial === true
 
         {pagos.length === 0 && !showPagoForm ? (
           <div className="flex flex-col items-center justify-center py-6 text-gray-400">
-            <Wallet size={28} className="mb-2 opacity-30" />
-            <p className="text-sm">Sin pagos registrados</p>
+            <Wallet size={28} className="mb-3 opacity-30" />
+            <p className="text-sm mb-4">Sin pagos registrados</p>
             {venta.estado !== 'anulada' && (
               <button
                 onClick={abrirFormPago}
-                className="mt-3 flex items-center gap-1.5 text-xs text-amber-700 hover:underline"
+                className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white text-sm font-bold rounded-xl hover:bg-green-600 shadow-sm"
               >
-                <Plus size={13} /> Registrar primer pago
+                <Plus size={18} /> Registrar primer pago
               </button>
             )}
           </div>

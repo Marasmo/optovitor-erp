@@ -107,7 +107,7 @@ const HOSTNAME_MAP = {
 
 function detectTenantId() {
   const hostname = window.location.hostname
-  return HOSTNAME_MAP[hostname] ?? 'opticajuliaca'
+  return HOSTNAME_MAP[hostname] ?? 'demo'
 }
 
 export function useTenant() {
