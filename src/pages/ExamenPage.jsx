@@ -306,7 +306,7 @@ async function handleSave(estado = 'borrador') {
                   <td className="px-1 py-1">
                     <NumInput value={med.cil} onChange={e => {
                       set('cil', e.target.value)
-                      setErrors(prev => ({ ...prev, [ejeKey]: undefined }))
+                      setErrors(prev => { const n = { ...prev }; delete n[ejeKey]; return n })
                     }} />
                   </td>
                   <td className="px-1 py-1">
@@ -314,7 +314,7 @@ async function handleSave(estado = 'borrador') {
                       value={med.eje}
                       onChange={e => {
                         set('eje', e.target.value)
-                        setErrors(prev => ({ ...prev, [ejeKey]: undefined }))
+                        setErrors(prev => { const n = { ...prev }; delete n[ejeKey]; return n })
                       }}
                       required={ejeRequerido(med)}
                       error={!!errors[ejeKey]}
