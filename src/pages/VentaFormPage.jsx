@@ -104,12 +104,56 @@ export default function VentaFormPage() {
   const [descuentoGlobal, setDescuentoGlobal] = useState('')
   const [showDescuentoGlobal, setShowDescuentoGlobal] = useState(false)
   const [prescription, setPrescription] = useState(null)
+  const [qrInput, setQrInput] = useState('')
+  const [qrError, setQrError] = useState('')
 
   useEffect(() => { init() }, [])
 
   function showToast(msg) {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(null), 2500)
+  }
+
+  async function handleQrScan(codigo) {
+    const codigoLimpio = codigo.trim().toUpperCase()
+    if (!codigoLimpio) return
+
+    // Buscar en inventario por código QR
+    const { data: inv, error } = await supabase
+      .from('inventario_categorias_montura')
+      .select('*, productos(*)')
+      .eq('codigo_qr', codigoLimpio)
+      .eq('activo', true)
+      .maybeSingle()
+
+    if (error || !inv) {
+      setQrError(`Código "${codigoLimpio}" no encontrado`)
+      setTimeout(() => setQrError(''), 3000)
+      setQrInput('')
+      return
+    }
+
+    if (inv.cantidad <= 0) {
+      setQrError(`Sin stock: ${inv.nombre}`)
+      setTimeout(() => setQrError(''), 3000)
+      setQrInput('')
+      return
+    }
+
+    // Agregar al carrito
+    const producto = inv.productos
+    setItems(prev => [...prev, {
+      tempId: crypto.randomUUID(),
+      producto_id: producto.id,
+      descripcion: inv.nombre,
+      cantidad: 1,
+      precio_unitario: Number(inv.precio).toFixed(2),
+      tipo_afectacion_igv: producto.tipo_afectacion_igv || '10',
+      unidad_medida: producto.unidad_medida || 'NIU',
+    }])
+    setQrInput('')
+    setQrError('')
+    showToast(`✅ ${inv.nombre} — S/ ${Number(inv.precio).toFixed(2)}`)
   }
 
   async function init() {

@@ -1,128 +1,88 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Search, Glasses, Plus, Minus, QrCode, Save, X } from 'lucide-react'
+import { Glasses, Plus, Minus, Save, X, BarChart3 } from 'lucide-react'
+
+const estrellas = { 'OJ-1': '⭐', 'OJ-2': '⭐⭐', 'OJ-3': '⭐⭐⭐', 'OJ-4': '⭐⭐⭐⭐', 'OJ-5': '⭐⭐⭐⭐⭐', 'OJ-6': '⭐⭐⭐⭐⭐⭐' }
+
+const colorCategoria = {
+  'OJ-1': 'bg-gray-50 border-gray-200',
+  'OJ-2': 'bg-blue-50 border-blue-200',
+  'OJ-3': 'bg-green-50 border-green-200',
+  'OJ-4': 'bg-amber-50 border-amber-200',
+  'OJ-5': 'bg-purple-50 border-purple-200',
+  'OJ-6': 'bg-red-50 border-red-200',
+}
 
 export default function InventarioPage() {
-  const [muebles, setMuebles] = useState([])
+  const [categorias, setCategorias] = useState([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [sedeId, setSedeId] = useState(null)
-
-  // Edición rápida de cantidad
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
-
-  // Nuevo mueble
-  const [showNuevo, setShowNuevo] = useState(false)
-  const [nuevoCodigo, setNuevoCodigo] = useState('')
-  const [nuevoNombre, setNuevoNombre] = useState('')
-  const [nuevoDescripcion, setNuevoDescripcion] = useState('')
-  const [nuevoCantidad, setNuevoCantidad] = useState('')
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => { init() }, [])
+  // Reposición rápida
+  const [showReposicion, setShowReposicion] = useState(false)
+  const [reposicion, setReposicion] = useState({})
 
-  async function init() {
+  useEffect(() => { fetchCategorias() }, [])
+
+  async function fetchCategorias() {
     setLoading(true)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('sede_id, roles(nombre)')
-        .eq('id', user.id)
-        .single()
-      setIsAdmin(profile?.roles?.nombre === 'admin')
-      setSedeId(profile?.sede_id || null)
-    }
-
-    await fetchMuebles()
+    const { data, error } = await supabase
+      .from('inventario_categorias_montura')
+      .select('*')
+      .eq('activo', true)
+      .order('precio')
+    if (!error) setCategorias(data || [])
     setLoading(false)
   }
 
-  async function fetchMuebles() {
-    const { data, error } = await supabase
-      .from('muebles_monturas')
-      .select('*')
-      .eq('activo', true)
-      .order('nombre')
-
-    if (!error) setMuebles(data || [])
-  }
-
-  function startEdit(m) {
-    setEditingId(m.id)
-    setEditValue(String(m.cantidad_total))
-  }
-
-  async function saveCantidad(id) {
-    const nueva = parseInt(editValue, 10)
-    if (isNaN(nueva) || nueva < 0) {
-      alert('Ingresa un número válido (0 o mayor)')
-      return
-    }
-    try {
-      const { error } = await supabase
-        .from('muebles_monturas')
-        .update({ cantidad_total: nueva })
-        .eq('id', id)
-      if (error) throw error
-      setEditingId(null)
-      await fetchMuebles()
-    } catch (err) {
-      alert('Error al actualizar: ' + err.message)
-    }
-  }
-
   async function ajustar(id, delta) {
-    const m = muebles.find(x => x.id === id)
-    if (!m) return
-    const nueva = Math.max(0, m.cantidad_total + delta)
-    try {
-      const { error } = await supabase
-        .from('muebles_monturas')
-        .update({ cantidad_total: nueva })
-        .eq('id', id)
-      if (error) throw error
-      await fetchMuebles()
-    } catch (err) {
-      alert('Error al actualizar: ' + err.message)
-    }
+    const cat = categorias.find(c => c.id === id)
+    if (!cat) return
+    const nueva = Math.max(0, cat.cantidad + delta)
+    const { error } = await supabase
+      .from('inventario_categorias_montura')
+      .update({ cantidad: nueva })
+      .eq('id', id)
+    if (!error) await fetchCategorias()
   }
 
-  async function crearMueble() {
-    if (!nuevoCodigo.trim() || !nuevoNombre.trim()) {
-      alert('Código y nombre son obligatorios')
-      return
-    }
+  async function saveEdit(id) {
+    const nueva = parseInt(editValue, 10)
+    if (isNaN(nueva) || nueva < 0) { alert('Ingresa un número válido'); return }
+    setSaving(true)
+    const { error } = await supabase
+      .from('inventario_categorias_montura')
+      .update({ cantidad: nueva })
+      .eq('id', id)
+    if (!error) { setEditingId(null); await fetchCategorias() }
+    setSaving(false)
+  }
+
+  async function handleReposicion() {
     setSaving(true)
     try {
-      const { error } = await supabase
-        .from('muebles_monturas')
-        .insert({
-          sede_id: sedeId,
-          codigo_qr: nuevoCodigo.trim().toUpperCase(),
-          nombre: nuevoNombre.trim(),
-          descripcion: nuevoDescripcion.trim() || null,
-          cantidad_total: parseInt(nuevoCantidad, 10) || 0,
-        })
-      if (error) throw error
-      setShowNuevo(false)
-      setNuevoCodigo(''); setNuevoNombre(''); setNuevoDescripcion(''); setNuevoCantidad('')
-      await fetchMuebles()
+      for (const [id, valor] of Object.entries(reposicion)) {
+        const cantidad = parseInt(valor, 10)
+        if (isNaN(cantidad) || cantidad <= 0) continue
+        const cat = categorias.find(c => c.id === id)
+        if (!cat) continue
+        await supabase
+          .from('inventario_categorias_montura')
+          .update({ cantidad: cat.cantidad + cantidad })
+          .eq('id', id)
+      }
+      setReposicion({})
+      setShowReposicion(false)
+      await fetchCategorias()
     } catch (err) {
-      alert('Error al crear mueble: ' + err.message)
+      alert('Error: ' + err.message)
     }
     setSaving(false)
   }
 
-  const filtered = muebles.filter(m => {
-    const texto = `${m.nombre} ${m.codigo_qr} ${m.descripcion || ''}`.toLowerCase()
-    return query === '' || texto.includes(query.toLowerCase())
-  })
-
-  const totalMonturas = muebles.reduce((sum, m) => sum + m.cantidad_total, 0)
+  const totalMonturas = categorias.reduce((s, c) => s + c.cantidad, 0)
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
@@ -135,126 +95,120 @@ export default function InventarioPage() {
             Inventario de monturas
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            {muebles.length} muebles · {totalMonturas} monturas en total
+            {totalMonturas} monturas disponibles en total
           </p>
         </div>
         <button
-          onClick={() => setShowNuevo(true)}
+          onClick={() => setShowReposicion(true)}
           className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600"
         >
-          <Plus size={16} /> Nuevo mueble
+          <Plus size={16} /> Reponer stock
         </button>
       </div>
 
-      {/* Búsqueda */}
-      <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Buscar por nombre o código..."
-          className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-        />
-      </div>
-
-      {/* Formulario nuevo mueble */}
-      {showNuevo && (
-        <div className="bg-amber-50/60 rounded-2xl border border-amber-100 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-amber-700">Nuevo mueble</h3>
-            <button onClick={() => setShowNuevo(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={16} />
-            </button>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] text-gray-400 mb-0.5">Código QR / Barras</label>
-              <input
-                value={nuevoCodigo}
-                onChange={e => setNuevoCodigo(e.target.value)}
-                placeholder="Ej. OJ03123456"
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
+      {/* Modal reposición */}
+      {showReposicion && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-800">Reponer stock</h2>
+              <button onClick={() => { setShowReposicion(false); setReposicion({}) }}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                <X size={18} />
+              </button>
             </div>
-            <div>
-              <label className="block text-[10px] text-gray-400 mb-0.5">Nombre</label>
-              <input
-                value={nuevoNombre}
-                onChange={e => setNuevoNombre(e.target.value)}
-                placeholder="Ej. Mueble 3"
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
+            <p className="text-xs text-gray-400 mb-4">Ingresa cuántas monturas vas a agregar a cada categoría</p>
+            <div className="space-y-3">
+              {categorias.map(cat => (
+                <div key={cat.id} className="flex items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">{cat.nombre}</p>
+                    <p className="text-xs text-gray-400">Stock actual: {cat.cantidad} · S/ {Number(cat.precio).toFixed(0)}</p>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={reposicion[cat.id] || ''}
+                    onChange={e => setReposicion(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                    placeholder="0"
+                    className="w-20 text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  />
+                </div>
+              ))}
             </div>
-            <div>
-              <label className="block text-[10px] text-gray-400 mb-0.5">Cantidad inicial</label>
-              <input
-                type="number"
-                value={nuevoCantidad}
-                onChange={e => setNuevoCantidad(e.target.value)}
-                placeholder="0"
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-gray-400 mb-0.5">Descripción (opcional)</label>
-              <input
-                value={nuevoDescripcion}
-                onChange={e => setNuevoDescripcion(e.target.value)}
-                placeholder="Ej. Monturas de sol"
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
+            <div className="flex justify-end gap-2 mt-5">
+              <button onClick={() => { setShowReposicion(false); setReposicion({}) }}
+                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
+                Cancelar
+              </button>
+              <button onClick={handleReposicion} disabled={saving}
+                className="flex items-center gap-2 px-5 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50">
+                <Save size={15} /> {saving ? 'Guardando...' : 'Guardar reposición'}
+              </button>
             </div>
           </div>
-          <button
-            onClick={crearMueble}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50"
-          >
-            <Save size={15} /> {saving ? 'Guardando...' : 'Guardar mueble'}
-          </button>
         </div>
       )}
 
-      {/* Lista de muebles */}
+      {/* Resumen visual */}
+      {!loading && categorias.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 size={14} className="text-amber-600" />
+            <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Distribución de stock</h3>
+          </div>
+          <div className="space-y-2">
+            {categorias.map(cat => {
+              const pct = totalMonturas > 0 ? (cat.cantidad / totalMonturas) * 100 : 0
+              return (
+                <div key={cat.id} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 w-28 shrink-0">{cat.nombre}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-2">
+                    <div
+                      className="bg-amber-400 h-2 rounded-full transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-gray-700 w-6 text-right">{cat.cantidad}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Lista de categorías */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
-            Cargando inventario...
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-            <Glasses size={32} className="mb-2 opacity-30" />
-            <p className="text-sm">No se encontraron muebles</p>
-          </div>
+          <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Cargando...</div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {filtered.map(m => {
-              const isEditing = editingId === m.id
-              const agotado = m.cantidad_total === 0
-              const bajo = m.cantidad_total > 0 && m.cantidad_total <= 5
+            {categorias.map(cat => {
+              const isEditing = editingId === cat.id
+              const agotado = cat.cantidad === 0
+              const bajo = cat.cantidad > 0 && cat.cantidad <= 5
 
               return (
-                <div key={m.id} className="px-5 py-4 flex items-center justify-between gap-4">
+                <div key={cat.id} className={`px-5 py-4 flex items-center justify-between gap-4 ${colorCategoria[cat.codigo_qr] || ''}`}>
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 bg-white rounded-xl border border-gray-100 flex items-center justify-center shrink-0 shadow-sm">
                       <Glasses size={18} className="text-amber-600" />
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{m.nombre}</p>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap text-xs text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <QrCode size={11} /> {m.codigo_qr}
-                        </span>
-                        {m.descripcion && <span>· {m.descripcion}</span>}
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">{cat.nombre}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-gray-500">S/ {Number(cat.precio).toFixed(0)}</span>
+                        <span className="text-xs">{estrellas[cat.codigo_qr]}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">{cat.codigo_qr}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      agotado ? 'bg-red-50 text-red-600' :
-                      bajo ? 'bg-amber-50 text-amber-600' :
-                      'bg-green-50 text-green-600'
+                      agotado ? 'bg-red-100 text-red-600' :
+                      bajo ? 'bg-amber-100 text-amber-700' :
+                      'bg-green-100 text-green-700'
                     }`}>
                       {agotado ? 'Agotado' : bajo ? 'Stock bajo' : 'Disponible'}
                     </span>
@@ -268,33 +222,29 @@ export default function InventarioPage() {
                           autoFocus
                           className="w-16 text-sm border border-amber-300 rounded-lg px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
                         />
-                        <button
-                          onClick={() => saveCantidad(m.id)}
-                          className="text-xs px-2 py-1 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
-                        >
+                        <button onClick={() => saveEdit(cat.id)} disabled={saving}
+                          className="text-xs px-2 py-1 bg-amber-500 text-white rounded-lg hover:bg-amber-600">
                           OK
+                        </button>
+                        <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 hover:text-gray-600">
+                          <X size={14} />
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => ajustar(m.id, -1)}
-                          disabled={m.cantidad_total === 0}
-                          className="p-1 text-gray-400 hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
+                        <button onClick={() => ajustar(cat.id, -1)} disabled={agotado}
+                          className="p-1 text-gray-400 hover:text-red-500 disabled:opacity-30">
                           <Minus size={15} />
                         </button>
                         <span
-                          onClick={() => startEdit(m)}
-                          className="text-sm font-bold text-gray-700 w-10 text-center cursor-pointer hover:text-amber-600"
+                          onClick={() => { setEditingId(cat.id); setEditValue(String(cat.cantidad)) }}
+                          className="text-lg font-bold text-gray-800 w-10 text-center cursor-pointer hover:text-amber-600"
                           title="Click para editar"
                         >
-                          {m.cantidad_total}
+                          {cat.cantidad}
                         </span>
-                        <button
-                          onClick={() => ajustar(m.id, 1)}
-                          className="p-1 text-gray-400 hover:text-green-600"
-                        >
+                        <button onClick={() => ajustar(cat.id, 1)}
+                          className="p-1 text-gray-400 hover:text-green-600">
                           <Plus size={15} />
                         </button>
                       </div>
