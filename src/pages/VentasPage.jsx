@@ -91,12 +91,12 @@ export default function VentasPage() {
     if (!error) setVentas(data || [])
 
     // Gastos de hoy
-    const { data: g } = await supabase
+    const { data: gastosData } = await supabase
       .from('gastos')
       .select('*')
       .eq('fecha', hoy)
       .order('created_at', { ascending: false })
-    setGastosHoy(g || [])
+    setGastosHoy(gastosData || [])
   }
 
   async function handleAgregarGasto() {
