@@ -41,10 +41,14 @@ export default function PrescriptionPrint({
     : '—'
 
   return (
-    <div className="ticket-58mm">
+    // OJO: esta clase ya NO lleva ningún transform/zoom propio.
+    // El zoom de la vista previa se aplica en RecetaPage.jsx, en un
+    // wrapper aparte, para que jamás pueda "filtrarse" a la impresión.
+    <div className="ticket-print">
       <style>{`
-        .ticket-58mm {
-          width:58mm;
+        /* ===== Tamaño real: 72mm = área imprimible de la Epson TM-T20II ===== */
+        .ticket-print {
+          width: 72mm;
           margin: 0 auto;
           background: #fff;
           font-family: 'Courier New', monospace;
@@ -56,7 +60,7 @@ export default function PrescriptionPrint({
           border: 1px solid #e5e7eb;
           box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
-        .ticket-58mm * { box-sizing: border-box; }
+        .ticket-print * { box-sizing: border-box; }
         .t-center { text-align: center; }
         .t-bold   { font-weight: bold; }
         .t-line   { border-top: 1px dashed #000; margin: 4px 0; }
@@ -73,40 +77,48 @@ export default function PrescriptionPrint({
         .t-footer { font-size: 8px; text-align: center; margin-top: 6px; }
         .t-firma  { margin-top: 16px; text-align: center; }
         .t-firma-line { border-top: 1px solid #000; width: 80%; margin: 0 auto 2px; }
-        /* FUERA del @media print — solo en pantalla */
 
-/* DENTRO del @media print */
-@media print {
-  @page { 
-    size: 58mm auto; 
-    margin: 0; 
-  }
-  html, body { 
-    width: 58mm !important; 
-    margin: 0 !important; 
-    padding: 0 !important; 
-  }
-  body * { 
-    visibility: hidden; 
-  }
-  .ticket-58mm, .ticket-58mm * { 
-    visibility: visible; 
-  }
-  .ticket-58mm { 
-    position: absolute; 
-    left: 0; 
-    top: 0; 
-    width: 58mm !important;
-    border: none; 
-    box-shadow: none; 
-    padding: 4px; 
-    font-size: 10px !important;
-    transform: none !important;
-  }
-  .no-print { 
-    display: none !important; 
-  }
-}
+        /* ===== @media print — papel físico de 80mm, imprimible 72mm ===== */
+        @media print {
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+          html, body {
+            width: 80mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          .ticket-print, .ticket-print * {
+            visibility: visible;
+          }
+          .ticket-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 72mm !important;
+            margin: 0 4mm !important; /* centra el ticket dentro de los 80mm físicos */
+            border: none;
+            box-shadow: none;
+            padding: 4px;
+            font-size: 10px !important;
+            transform: none !important;
+          }
+          /* Reseteamos cualquier transform/zoom que pudiera venir de un
+             ancestro (ej. el wrapper de zoom de la vista previa en
+             RecetaPage.jsx). Esto es lo que faltaba antes: solo se
+             reseteaba .ticket-print, nunca sus padres. */
+          html, body, #root, .receipt-preview-wrapper {
+            transform: none !important;
+            zoom: 1 !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
       `}</style>
 
       {/* Encabezado */}
