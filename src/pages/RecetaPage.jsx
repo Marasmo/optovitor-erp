@@ -258,9 +258,8 @@ export default function RecetaPage() {
       )}
 
       {/* Vista previa de la receta — esto es lo que se imprime */}
-   <div className="flex justify-center py-4 bg-gray-50 rounded-2xl no-print-bg">
-  <div className="preview-scale" style={{ transformOrigin: 'top center', marginBottom: '120px' }}>
-    <PrescriptionPrint
+   <div className="flex justify-center py-4 bg-gray-50 rounded-2xl no-print-bg overflow-hidden">
+  <PrescriptionPrint
       sede={{ nombre: sede?.nombre, direccion: sede?.direccion, telefono: sede?.telefono }}
       patient={{
         nombres: patient?.nombres,

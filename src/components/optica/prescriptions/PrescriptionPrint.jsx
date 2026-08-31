@@ -44,7 +44,7 @@ export default function PrescriptionPrint({
     <div className="ticket-58mm">
       <style>{`
         .ticket-58mm {
-          width: 78mm;
+          width:58mm;
           margin: 0 auto;
           background: #fff;
           font-family: 'Courier New', monospace;
@@ -74,28 +74,20 @@ export default function PrescriptionPrint({
         .t-firma  { margin-top: 16px; text-align: center; }
         .t-firma-line { border-top: 1px solid #000; width: 80%; margin: 0 auto 2px; }
         /* FUERA del @media print — solo en pantalla */
-.preview-scale {
-  transform: scale(1.8);
-}
 
 /* DENTRO del @media print */
 @media print {
   @page { 
-    size: 78mm auto; 
+    size: 58mm auto; 
     margin: 0; 
   }
   html, body { 
-    width: 78mm !important; 
+    width: 58mm !important; 
     margin: 0 !important; 
     padding: 0 !important; 
   }
   body * { 
     visibility: hidden; 
-  }
-  .preview-scale {
-    transform: none !important;
-    margin-bottom: 0 !important;
-    overflow: visible !important;
   }
   .ticket-58mm, .ticket-58mm * { 
     visibility: visible; 
@@ -104,7 +96,7 @@ export default function PrescriptionPrint({
     position: absolute; 
     left: 0; 
     top: 0; 
-    width: 78mm !important;
+    width: 58mm !important;
     border: none; 
     box-shadow: none; 
     padding: 4px; 
