@@ -83,7 +83,6 @@ export default function PrescriptionPrint({
   .preview-scale {
     transform: none !important;
     margin-bottom: 0 !important;
-    overflow: visible !important;
   }
   .ticket-58mm {
     transform: none !important;
