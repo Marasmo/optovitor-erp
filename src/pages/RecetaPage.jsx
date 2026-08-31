@@ -191,6 +191,29 @@ export default function RecetaPage() {
   const dip = extras.dip || od?.dp_lejos || ''
   const add = extras.add || od?.ref_adicion || ''
 
+  // Props compartidas entre la copia de pantalla y la copia de impresión.
+  // Se definen UNA vez para que ambos <PrescriptionPrint> reciban
+  // exactamente los mismos datos, sin duplicar el bloque.
+  const recetaProps = {
+    sede: { nombre: sede?.nombre, direccion: sede?.direccion, telefono: sede?.telefono },
+    patient: {
+      nombres: patient?.nombres,
+      apellidos: patient?.apellidos,
+      dni: patient?.dni,
+      telefono: patient?.telefono,
+      edad: patient?.fecha_nac ? calcularEdad(patient.fecha_nac) : (patient?.edad || null),
+      ocupacion: patient?.ocupacion || null,
+    },
+    exam: { fecha: exam.fecha, tipo_examen: exam.tipo_examen },
+    od,
+    oi,
+    dip,
+    add,
+    recomendaciones: exam.recomendaciones,
+    proximaCita: extras.proxima_cita,
+    optometrista,
+  }
+
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
 
@@ -257,56 +280,41 @@ export default function RecetaPage() {
         </div>
       )}
 
-      {/* Vista previa de la receta — esto es lo que se imprime */}
-      <div className="flex justify-center py-4 bg-gray-50 rounded-2xl no-print-bg overflow-hidden">
-        <div className="receipt-preview-wrapper">
-          <style>{`
-            /*
-              Zoom SOLO para la vista previa en pantalla.
-              Usamos "zoom" (no transform: scale) porque zoom reflowea
-              el layout de verdad, en vez de aplicar una matriz de
-              transformación visual — así no hay riesgo de que el
-              tamaño "aumentado" se filtre al imprimir.
+      {/*
+        IMPORTANTE: aquí van DOS copias separadas de <PrescriptionPrint>,
+        no una compartida.
 
-              Esto vive aquí, en RecetaPage.jsx (fuera de
-              PrescriptionPrint.jsx), para que el componente que se
-              imprime nunca tenga que preocuparse por el zoom de
-              pantalla: sus estilos de @media print siempre parten
-              de zoom: 1 real.
-            */
-            @media screen {
-              .receipt-preview-wrapper {
-                zoom: 1.8;
-              }
-            }
-            @media print {
-              .receipt-preview-wrapper {
-                zoom: 1 !important;
-                transform: none !important;
-              }
-            }
-          `}</style>
-          <PrescriptionPrint
-            sede={{ nombre: sede?.nombre, direccion: sede?.direccion, telefono: sede?.telefono }}
-            patient={{
-              nombres: patient?.nombres,
-              apellidos: patient?.apellidos,
-              dni: patient?.dni,
-              telefono: patient?.telefono,
-              edad: patient?.fecha_nac ? calcularEdad(patient.fecha_nac) : (patient?.edad || null),
-              ocupacion: patient?.ocupacion || null,
-            }}
-            exam={{ fecha: exam.fecha, tipo_examen: exam.tipo_examen }}
-            od={od}
-            oi={oi}
-            dip={dip}
-            add={add}
-            recomendaciones={exam.recomendaciones}
-            proximaCita={extras.proxima_cita}
-            optometrista={optometrista}
-          />
+        Intentamos antes agrandar el preview con transform: scale() y
+        luego con zoom, aplicándolo sobre el MISMO elemento que se
+        imprime (o un padre suyo) y reseteándolo en @media print. Ambas
+        veces terminó filtrándose a la impresión de una forma u otra,
+        porque Chrome no siempre recalcula esas propiedades de forma
+        confiable al pasar de pantalla a impresión sobre un elemento
+        que ya fue afectado por ellas en pantalla.
+
+        La solución de fondo es que la copia que se imprime JAMÁS
+        tenga zoom/transform aplicado, ni en este render ni en ningún
+        render anterior — para eso tiene que ser un elemento distinto,
+        no el mismo reseteado.
+      */}
+
+      {/* Copia de PANTALLA — con zoom para verse grande, nunca se imprime */}
+      <div className="flex justify-center py-4 bg-gray-50 rounded-2xl overflow-hidden no-print">
+        <div style={{ zoom: 1.8 }}>
+          <PrescriptionPrint {...recetaProps} />
         </div>
       </div>
+
+      {/* Copia de IMPRESIÓN — oculta en pantalla, sin zoom/transform jamás */}
+      <div className="print-only-receipt">
+        <PrescriptionPrint {...recetaProps} />
+      </div>
+      <style>{`
+        .print-only-receipt { display: none; }
+        @media print {
+          .print-only-receipt { display: block !important; }
+        }
+      `}</style>
 
       <p className="text-xs text-gray-400 text-center no-print">
         Vista previa — el formato real se ajusta al ancho de la impresora térmica

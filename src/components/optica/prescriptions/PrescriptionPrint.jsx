@@ -107,11 +107,11 @@ export default function PrescriptionPrint({
             font-size: 10px !important;
             transform: none !important;
           }
-          /* Reseteamos cualquier transform/zoom que pudiera venir de un
-             ancestro (ej. el wrapper de zoom de la vista previa en
-             RecetaPage.jsx). Esto es lo que faltaba antes: solo se
-             reseteaba .ticket-print, nunca sus padres. */
-          html, body, #root, .receipt-preview-wrapper {
+          /* Defensa extra: esta copia del ticket (renderizada desde
+             .print-only-receipt en RecetaPage.jsx) nunca debería tener
+             zoom/transform de ningún ancestro, pero lo reseteamos igual
+             por si algún día se reutiliza este componente en otro lugar. */
+          html, body, #root {
             transform: none !important;
             zoom: 1 !important;
           }
