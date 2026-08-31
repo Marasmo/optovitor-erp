@@ -318,7 +318,7 @@ const totalGastosHoy = gastosHoy.reduce((sum, g) => sum + Number(g.monto_centimo
                 <span className="text-gray-600">{g.concepto}</span>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-400 capitalize">{metodoLabel[g.metodo_pago]}</span>
-                  <span className="font-medium text-gray-700">S/ {Number(g.monto).toFixed(2)}</span>
+                  <span className="font-medium text-gray-700">S/ {(Number(g.monto_centimos) / 100).toFixed(2)}</span>
                   <button onClick={() => handleEliminarGasto(g.id)} className="text-gray-300 hover:text-red-500">
                     <X size={14} />
                   </button>
