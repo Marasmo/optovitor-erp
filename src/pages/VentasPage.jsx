@@ -109,7 +109,7 @@ export default function VentasPage() {
       const { data: { user } } = await supabase.auth.getUser()
       const { error } = await supabase.from('gastos').insert({
         sede_id:        sedeId,
-        fecha:          new Date().toISOString().split('T')[0],
+        fecha: hoy,
         concepto:       nuevoConcepto.trim(),
         monto_centimos: Math.round(monto * 100),
         metodo_pago:    nuevoMetodo,
