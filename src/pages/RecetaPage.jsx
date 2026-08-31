@@ -283,7 +283,7 @@ export default function RecetaPage() {
 </div>
 
       <p className="text-xs text-gray-400 text-center no-print">
-        Vista previa — el formato real se ajusta al ancho de la impresora térmica de 58mm
+        Vista previa — el formato real se ajusta al ancho de la impresora térmica de 78mm
       </p>
     </div>
   )

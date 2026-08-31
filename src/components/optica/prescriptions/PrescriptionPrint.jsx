@@ -44,7 +44,7 @@ export default function PrescriptionPrint({
     <div className="ticket-58mm">
       <style>{`
         .ticket-58mm {
-          width: 58mm;
+          width: 78mm;
           margin: 0 auto;
           background: #fff;
           font-family: 'Courier New', monospace;
@@ -81,11 +81,11 @@ export default function PrescriptionPrint({
 /* DENTRO del @media print */
 @media print {
   @page { 
-    size: 58mm auto; 
+    size: 78mm auto; 
     margin: 0; 
   }
   html, body { 
-    width: 58mm !important; 
+    width: 78mm !important; 
     margin: 0 !important; 
     padding: 0 !important; 
   }
@@ -104,7 +104,7 @@ export default function PrescriptionPrint({
     position: absolute; 
     left: 0; 
     top: 0; 
-    width: 58mm !important;
+    width: 78mm !important;
     border: none; 
     box-shadow: none; 
     padding: 4px; 
