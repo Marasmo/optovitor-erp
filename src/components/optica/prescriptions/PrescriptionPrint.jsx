@@ -80,9 +80,18 @@ export default function PrescriptionPrint({
 
 /* DENTRO del @media print */
 @media print {
-  .preview-scale {
+  @page { size: 58mm auto; margin: 0; }
+  html, body { 
+    width: 58mm !important; 
+    max-width: 58mm !important;
+    margin: 0 !important; 
+    padding: 0 !important; 
+  }
+  .ticket-58mm {
+    width: 58mm !important;
+    min-width: 58mm !important;
+    font-size: 10px !important;
     transform: none !important;
-    margin-bottom: 0 !important;
   }
   .ticket-58mm {
     transform: none !important;
