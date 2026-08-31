@@ -80,29 +80,40 @@ export default function PrescriptionPrint({
 
 /* DENTRO del @media print */
 @media print {
-  @page { size: 58mm auto; margin: 0; }
+  @page { 
+    size: 58mm auto; 
+    margin: 0; 
+  }
   html, body { 
     width: 58mm !important; 
-    max-width: 58mm !important;
     margin: 0 !important; 
     padding: 0 !important; 
   }
-  .ticket-58mm {
+  body * { 
+    visibility: hidden; 
+  }
+  .preview-scale {
+    transform: none !important;
+    margin-bottom: 0 !important;
+    overflow: visible !important;
+  }
+  .ticket-58mm, .ticket-58mm * { 
+    visibility: visible; 
+  }
+  .ticket-58mm { 
+    position: absolute; 
+    left: 0; 
+    top: 0; 
     width: 58mm !important;
-    min-width: 58mm !important;
+    border: none; 
+    box-shadow: none; 
+    padding: 4px; 
     font-size: 10px !important;
     transform: none !important;
   }
-  .ticket-58mm {
-    transform: none !important;
-    width: 58mm !important;
+  .no-print { 
+    display: none !important; 
   }
-  @page { size: 58mm auto; margin: 0; }
-  html, body { width: 58mm; margin: 0; padding: 0; }
-  body * { visibility: hidden; }
-  .ticket-58mm, .ticket-58mm * { visibility: visible; }
-  .ticket-58mm { position: absolute; left: 0; top: 0; width: 58mm; border: none; box-shadow: none; padding: 4px 4px; }
-  .no-print { display: none !important; }
 }
       `}</style>
 
