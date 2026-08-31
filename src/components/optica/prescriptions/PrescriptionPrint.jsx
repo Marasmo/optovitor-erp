@@ -73,14 +73,29 @@ export default function PrescriptionPrint({
         .t-footer { font-size: 8px; text-align: center; margin-top: 6px; }
         .t-firma  { margin-top: 16px; text-align: center; }
         .t-firma-line { border-top: 1px solid #000; width: 80%; margin: 0 auto 2px; }
-        @media print {
-          @page { size: 58mm auto; margin: 0; }
-          html, body { width: 58mm; margin: 0; padding: 0; }
-          body * { visibility: hidden; }
-          .ticket-58mm, .ticket-58mm * { visibility: visible; }
-          .ticket-58mm { position: absolute; left: 0; top: 0; width: 58mm; border: none; box-shadow: none; padding: 4px 4px; }
-          .no-print { display: none !important; }
-        }
+        /* FUERA del @media print — solo en pantalla */
+.preview-scale {
+  transform: scale(1.8);
+}
+
+/* DENTRO del @media print */
+@media print {
+  .preview-scale {
+    transform: none !important;
+    margin-bottom: 0 !important;
+    overflow: visible !important;
+  }
+  .ticket-58mm {
+    transform: none !important;
+    width: 58mm !important;
+  }
+  @page { size: 58mm auto; margin: 0; }
+  html, body { width: 58mm; margin: 0; padding: 0; }
+  body * { visibility: hidden; }
+  .ticket-58mm, .ticket-58mm * { visibility: visible; }
+  .ticket-58mm { position: absolute; left: 0; top: 0; width: 58mm; border: none; box-shadow: none; padding: 4px 4px; }
+  .no-print { display: none !important; }
+}
       `}</style>
 
       {/* Encabezado */}

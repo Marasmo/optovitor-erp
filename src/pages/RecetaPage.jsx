@@ -258,32 +258,28 @@ export default function RecetaPage() {
       )}
 
       {/* Vista previa de la receta — esto es lo que se imprime */}
-      <div className="flex justify-center py-4 bg-gray-50 rounded-2xl no-print-bg overflow-hidden">
-  <div style={{ transform: 'scale(1.8)', transformOrigin: 'top center', marginBottom: '120px' }}>
+   <div className="flex justify-center py-4 bg-gray-50 rounded-2xl no-print-bg">
+  <div className="preview-scale" style={{ transformOrigin: 'top center', marginBottom: '120px' }}>
     <PrescriptionPrint
-          sede={{
-            nombre: sede?.nombre,
-            direccion: sede?.direccion,
-            telefono: sede?.telefono,
-          }}
-          patient={{
-            nombres: patient?.nombres,
-            apellidos: patient?.apellidos,
-            dni: patient?.dni,
-            telefono: patient?.telefono,
-            edad: patient?.fecha_nac ? calcularEdad(patient.fecha_nac) : (patient?.edad || null),
-          }}
-          exam={{ fecha: exam.fecha, tipo_examen: exam.tipo_examen }}
-          od={od}
-          oi={oi}
-          dip={dip}
-          add={add}
-          recomendaciones={exam.recomendaciones}
-          proximaCita={extras.proxima_cita}
-          optometrista={optometrista}
-           />
+      sede={{ nombre: sede?.nombre, direccion: sede?.direccion, telefono: sede?.telefono }}
+      patient={{
+        nombres: patient?.nombres,
+        apellidos: patient?.apellidos,
+        dni: patient?.dni,
+        telefono: patient?.telefono,
+        edad: patient?.fecha_nac ? calcularEdad(patient.fecha_nac) : (patient?.edad || null),
+        ocupacion: patient?.ocupacion || null,
+      }}
+      exam={{ fecha: exam.fecha, tipo_examen: exam.tipo_examen }}
+      od={od}
+      oi={oi}
+      dip={dip}
+      add={add}
+      recomendaciones={exam.recomendaciones}
+      proximaCita={extras.proxima_cita}
+      optometrista={optometrista}
+    />
   </div>
-</div>
 
       <p className="text-xs text-gray-400 text-center no-print">
         Vista previa — el formato real se ajusta al ancho de la impresora térmica de 58mm
