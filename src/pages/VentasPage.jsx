@@ -101,10 +101,6 @@ export default function VentasPage() {
 
   async function handleAgregarGasto() {
     const monto = parseFloat(nuevoMonto)
-        console.log('nuevoMonto raw:', nuevoMonto)
-    console.log('monto parseado:', monto)
-    console.log('monto_centimos:', Math.round(monto * 100))
-    if (!nuevoConcepto.trim()) { alert('Ingresa el concepto del gasto'); return }
     if (!nuevoConcepto.trim()) { alert('Ingresa el concepto del gasto'); return }
     if (isNaN(monto) || monto <= 0) { alert('Ingresa un monto válido'); return }
 
@@ -368,7 +364,7 @@ const totalGastosHoy = gastosHoy.reduce((sum, g) => sum + Number(g.monto_centimo
         {gastosHoy.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-50 flex justify-between text-sm">
             <span className="text-gray-400">Total gastos de hoy</span>
-            <span className="font-medium text-gray-700">S/ {(Number(g.monto_centimos) / 100).toFixed(2)}</span>
+            <span className="font-medium text-gray-700">S/ {totalGastosHoy.toFixed(2)}</span>
           </div>
         )}
       </div>
