@@ -69,7 +69,10 @@ export default function CierreCajaPage() {
       setCierreExistente(cierre)
       return
     }
-
+    console.log('sede:', sede, 'fecha:', fecha)  // ← agrega aquí
+    const { data, error } = await supabase
+      .rpc('calcular_totales_dia', { p_sede_id: sede, p_fecha: fecha })
+    console.log('data:', data, 'error:', error)  // ← y aquí
     // Calcular totales del día (función SQL)
     const { data, error } = await supabase
       .rpc('calcular_totales_dia', { p_sede_id: sede, p_fecha: fecha })
