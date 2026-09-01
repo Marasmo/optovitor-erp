@@ -23,13 +23,26 @@ const metodoIcon = {
   otro: '💰',
 }
 
+// Fecha de "hoy" en zona horaria de Perú (UTC-5), sin importar la
+// zona horaria del navegador/servidor. new Date().toISOString()
+// convierte a UTC — entre las 7pm y medianoche hora Perú eso ya cae
+// en el día siguiente en UTC, y el precierre buscaría ventas de un
+// día que todavía no existe. Mismo patrón que en VentasPage.jsx /
+// ExamenPage.jsx / VentaFormPage.jsx.
+function fechaHoyPeru() {
+  const ahora = new Date()
+  const offsetPeru = -5 * 60
+  const peruTime = new Date(ahora.getTime() + (offsetPeru - ahora.getTimezoneOffset()) * 60000)
+  return peruTime.toISOString().split('T')[0]
+}
+
 export default function CierreCajaPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [closing, setClosing] = useState(false)
 
   const [sedeId, setSedeId] = useState(null)
-  const [fecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha] = useState(fechaHoyPeru())
 
   const [totales, setTotales] = useState(null)
   const [cierreExistente, setCierreExistente] = useState(null)
@@ -73,9 +86,6 @@ export default function CierreCajaPage() {
     const { data, error } = await supabase
       .rpc('calcular_totales_dia', { p_sede_id: sede, p_fecha: fecha })
     console.log('data:', data, 'error:', error)  // ← y aquí
-    // Calcular totales del día (función SQL)
-    const { data, error } = await supabase
-      .rpc('calcular_totales_dia', { p_sede_id: sede, p_fecha: fecha })
 
     if (!error && data && data.length > 0) {
       const t = data[0]
