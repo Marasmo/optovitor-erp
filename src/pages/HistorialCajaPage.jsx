@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ArrowLeft, ChevronLeft, ChevronRight, ShoppingCart, Clock, Receipt, Lock, AlertCircle, Package } from 'lucide-react'
-import { format, addDays, subDays } from 'date-fns'
+import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const metodoIcon = {
@@ -12,6 +12,15 @@ const metodoIcon = {
   plin: '📲',
   transferencia: '🏦',
   otro: '💰',
+}
+
+// Fecha de "hoy" en zona horaria de Perú (UTC-5). Mismo patrón que
+// en VentasPage.jsx / ExamenPage.jsx / VentaFormPage.jsx / CierreCajaPage.jsx.
+function fechaHoyPeru() {
+  const ahora = new Date()
+  const offsetPeru = -5 * 60
+  const peruTime = new Date(ahora.getTime() + (offsetPeru - ahora.getTimezoneOffset()) * 60000)
+  return peruTime.toISOString().split('T')[0]
 }
 
 const metodoLabel = {
@@ -26,7 +35,7 @@ const metodoLabel = {
 export default function HistorialCajaPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha] = useState(fechaHoyPeru())
   const [sedeId, setSedeId] = useState(null)
 
   const [ventas, setVentas] = useState([])
@@ -101,14 +110,19 @@ export default function HistorialCajaPage() {
 
   const totalVentasDia = ventasActivas.reduce((sum, v) => sum + Number(v.total), 0)
   const totalCobradoDia = ventasActivas.reduce((sum, v) => sum + totalPagadoConfirmado(v), 0)
-  const totalGastosDia = gastos.reduce((sum, g) => sum + Number(g.monto), 0)
+  const totalGastosDia = gastos.reduce((sum, g) => sum + Number(g.monto_centimos), 0) / 100
 
   const cambiarDia = (delta) => {
-    const nueva = delta > 0 ? addDays(new Date(fecha + 'T00:00:00'), 1) : subDays(new Date(fecha + 'T00:00:00'), 1)
-    setFecha(nueva.toISOString().split('T')[0])
+    // Aritmética de fecha pura, sin pasar por la timezone local del
+    // navegador — evita que este cálculo dependa de que el sistema
+    // esté configurado exactamente en hora de Perú.
+    const [y, m, d] = fecha.split('-').map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    dt.setUTCDate(dt.getUTCDate() + delta)
+    setFecha(dt.toISOString().split('T')[0])
   }
 
-  const esHoy = fecha === new Date().toISOString().split('T')[0]
+  const esHoy = fecha === fechaHoyPeru()
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-5">
@@ -338,7 +352,7 @@ export default function HistorialCajaPage() {
                     <span className="text-gray-600">{g.concepto}</span>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-gray-400">{metodoIcon[g.metodo_pago]} {metodoLabel[g.metodo_pago]}</span>
-                      <span className="font-medium text-gray-700">S/ {Number(g.monto).toFixed(2)}</span>
+                      <span className="font-medium text-gray-700">S/ {(Number(g.monto_centimos) / 100).toFixed(2)}</span>
                     </div>
                   </div>
                 ))}

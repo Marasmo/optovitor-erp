@@ -51,7 +51,13 @@ export default function PrescriptionPrint({
           width: 72mm;
           margin: 0 auto;
           background: #fff;
-          font-family: 'Courier New', monospace;
+          /* Sans-serif con peso 600 en vez de Courier New a 400:
+             el cabezal térmico marca bien los trazos gruesos pero
+             los finos (serifas de Courier, peso normal) salen
+             débiles/borrosos casi sin importar el tamaño. Subir el
+             peso base es lo que realmente arregla la nitidez. */
+          font-family: Arial, Helvetica, sans-serif;
+          font-weight: 600;
           font-size: 10px;
           line-height: 1.4;
           color: #000;
@@ -62,16 +68,16 @@ export default function PrescriptionPrint({
         }
         .ticket-print * { box-sizing: border-box; }
         .t-center { text-align: center; }
-        .t-bold   { font-weight: bold; }
+        .t-bold   { font-weight: 800; }
         .t-line   { border-top: 1px dashed #000; margin: 4px 0; }
-        .t-title  { font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
+        .t-title  { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
         .t-sub    { font-size: 9px; }
-        .t-section { font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px; border-bottom: 1px solid #000; padding-bottom: 1px; }
+        .t-section { font-size: 10px; font-weight: 800; text-transform: uppercase; margin: 6px 0 2px; border-bottom: 1px solid #000; padding-bottom: 1px; }
         .t-row    { display: flex; justify-content: space-between; font-size: 10px; }
         .t-table  { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 2px; }
         .t-table th, .t-table td { text-align: center; padding: 1px 2px; }
-        .t-table th { font-size: 9px; font-weight: bold; border-bottom: 1px solid #000; }
-        .t-table td:first-child, .t-table th:first-child { text-align: left; font-weight: bold; width: 18%; }
+        .t-table th { font-size: 9px; font-weight: 800; border-bottom: 1px solid #000; }
+        .t-table td:first-child, .t-table th:first-child { text-align: left; font-weight: 800; width: 18%; }
         .t-small  { font-size: 9px; }
         .t-rec    { font-size: 9px; margin-top: 2px; word-wrap: break-word; }
         .t-footer { font-size: 8px; text-align: center; margin-top: 6px; }
