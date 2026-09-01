@@ -247,7 +247,7 @@ export default function ExamenDetailPage() {
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar size={14} className="text-gray-400" />
-              {format(new Date(exam.fecha), "dd 'de' MMMM yyyy", { locale: es })}
+              {format(new Date(exam.fecha + 'T00:00:00'), "dd 'de' MMMM yyyy", { locale: es })}
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Clock size={14} className="text-gray-400" />

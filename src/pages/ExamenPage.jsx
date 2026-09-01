@@ -7,6 +7,18 @@ const emptyMed = {
   esf: '', cil: '', eje: '', av: '', cerca_av: '',
 }
 
+// Fecha de "hoy" en zona horaria de Perú (UTC-5), sin importar la
+// zona horaria del navegador/servidor. new Date().toISOString()
+// convierte a UTC — de noche (después de las 7pm hora Perú) eso ya
+// cae en el día siguiente en UTC y adelanta la fecha por error.
+// Mismo patrón que se usa en VentasPage.jsx.
+function fechaHoyPeru() {
+  const ahora = new Date()
+  const offsetPeru = -5 * 60
+  const peruTime = new Date(ahora.getTime() + (offsetPeru - ahora.getTimezoneOffset()) * 60000)
+  return peruTime.toISOString().split('T')[0]
+}
+
 // Sin flechitas: type="text" + inputMode numérico
 function NumInput({ value, onChange }) {
   return (
@@ -69,7 +81,7 @@ export default function ExamenPage() {
   const [saving, setSaving]   = useState(false)
   const [errors, setErrors]   = useState({})
 
-  const [fecha, setFecha]             = useState(new Date().toISOString().split('T')[0])
+  const [fecha, setFecha]             = useState(fechaHoyPeru())
   const [tipoExamen, setTipoExamen]   = useState('completo')
   const [motivoConsulta, setMotivo]   = useState('')
   const [recomendaciones, setRecom]   = useState('')

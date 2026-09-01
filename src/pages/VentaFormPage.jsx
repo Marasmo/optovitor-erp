@@ -7,6 +7,18 @@ function formatSoles(centimos) {
   return `S/ ${(centimos / 100).toFixed(2)}`
 }
 
+// Fecha de "hoy" en zona horaria de Perú (UTC-5), sin importar la
+// zona horaria del navegador/servidor. new Date().toISOString()
+// convierte a UTC — entre las 7pm y medianoche hora Perú eso ya cae
+// en el día siguiente en UTC, adelantando la fecha guardada por error.
+// Mismo patrón que en VentasPage.jsx / ExamenPage.jsx.
+function fechaHoyPeru() {
+  const ahora = new Date()
+  const offsetPeru = -5 * 60
+  const peruTime = new Date(ahora.getTime() + (offsetPeru - ahora.getTimezoneOffset()) * 60000)
+  return peruTime.toISOString().split('T')[0]
+}
+
 function calcularLinea(precioUnitarioCentimos, cantidad, tipoAfectacion) {
   const total = Math.round(precioUnitarioCentimos * cantidad)
   if (tipoAfectacion === '10') {
@@ -313,7 +325,7 @@ export default function VentaFormPage() {
         .from('ventas').insert({
           sede_id: sedeId, patient_id: patient.id,
           prescription_id: prescription?.id || null, vendedor_id: user.id,
-          fecha: new Date().toISOString().split('T')[0],
+          fecha: fechaHoyPeru(),
           subtotal_centimos: 0, igv_centimos: 0, total_centimos: 0,
           notas: notas || null, es_pedido_especial: esPedidoEspecial,
         }).select().single()
