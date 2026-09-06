@@ -15,7 +15,7 @@ const [total, setTotal] = useState(0)
       .from('patients')
       .select('*')
       .eq('activo', true)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(1000),
     supabase
       .from('patients')
@@ -45,12 +45,18 @@ const [total, setTotal] = useState(0)
     async function updatePatient(id, formData) {
       const { data, error } = await supabase
         .from('patients')
-        .update(formData)
+        // updated_at explícito en cada edición — así el orden de la
+        // lista (más reciente primero) sobrevive a un refresh, sin
+        // depender de un trigger configurado en Supabase.
+        .update({ ...formData, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single()
       if (error) throw error
-      setPatients(prev => prev.map(p => p.id === id ? data : p))
+      // Igual que createPatient: el paciente editado se mueve al
+      // principio de la lista en vez de quedarse reemplazado en su
+      // posición original.
+      setPatients(prev => [data, ...prev.filter(p => p.id !== id)])
       return data
     }
 

@@ -39,7 +39,12 @@ export default function VentaPrint({
           width: 58mm;
           margin: 0 auto;
           background: #fff;
-          font-family: 'Courier New', monospace;
+          /* Misma fuente y pesos que PrescriptionPrint.jsx: sans-serif
+             a peso 600 en vez de Courier New a 400 — el cabezal
+             térmico marca bien los trazos gruesos pero los finos
+             (serifas, peso normal) salen débiles/borrosos. */
+          font-family: Arial, Helvetica, sans-serif;
+          font-weight: 600;
           font-size: 10px;
           line-height: 1.4;
           color: #000;
@@ -50,21 +55,21 @@ export default function VentaPrint({
         }
         .ticket-58mm * { box-sizing: border-box; }
         .t-center { text-align: center; }
-        .t-bold   { font-weight: bold; }
+        .t-bold   { font-weight: 800; }
         .t-line   { border-top: 1px dashed #000; margin: 4px 0; }
-        .t-title  { font-size: 13px; font-weight: bold; letter-spacing: 0.5px; }
+        .t-title  { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
         .t-sub    { font-size: 9px; }
-        .t-section { font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 6px 0 2px; border-bottom: 1px solid #000; padding-bottom: 1px; }
+        .t-section { font-size: 10px; font-weight: 800; text-transform: uppercase; margin: 6px 0 2px; border-bottom: 1px solid #000; padding-bottom: 1px; }
         .t-row    { display: flex; justify-content: space-between; font-size: 10px; }
         .t-table  { width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 2px; }
         .t-table th, .t-table td { text-align: right; padding: 1px 2px; }
-        .t-table th { font-size: 9px; font-weight: bold; border-bottom: 1px solid #000; }
+        .t-table th { font-size: 9px; font-weight: 800; border-bottom: 1px solid #000; }
         .t-table td:first-child, .t-table th:first-child { text-align: left; width: 46%; }
         .t-table td:nth-child(2), .t-table th:nth-child(2) { text-align: center; width: 12%; }
         .t-small  { font-size: 9px; }
         .t-footer { font-size: 8px; text-align: center; margin-top: 6px; }
-        .t-total-row { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; margin-top: 4px; }
-        .t-pedido-especial { text-align: center; font-weight: bold; font-size: 10px; border: 1px solid #000; padding: 2px; margin: 4px 0; }
+        .t-total-row { display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; margin-top: 4px; }
+        .t-pedido-especial { text-align: center; font-weight: 800; font-size: 10px; border: 1px solid #000; padding: 2px; margin: 4px 0; }
         @media print {
           @page { size: 58mm auto; margin: 0; }
           html, body { width: 58mm; margin: 0; padding: 0; }
