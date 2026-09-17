@@ -134,9 +134,9 @@ export default function VentaFormPage() {
     const { data: inv, error } = await supabase
       .from('inventario_categorias_montura')
       .select('*, productos(*)')
-.eq('codigo_qr', codigoLimpio)
-.eq('sede_id', sedeId)
-.eq('activo', true) 
+      .eq('codigo_qr', codigoLimpio)
+      .eq('sede_id', sedeId)
+      .eq('activo', true)
       .maybeSingle()
 
     if (error || !inv) {
@@ -172,14 +172,16 @@ export default function VentaFormPage() {
   async function init() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
+    let miSedeId = null
     if (user) {
       const { data: profile } = await supabase
         .from('profiles').select('sede_id, roles(nombre)').eq('id', user.id).single()
-      setSedeId(profile?.sede_id || null)
+      miSedeId = profile?.sede_id || null
+      setSedeId(miSedeId)
       setUserRole(profile?.roles?.nombre || null)
     }
     const { data: prods } = await supabase
-  .from('productos').select('*').eq('activo', true).eq('sede_id', miSedeId).order('categoria').order('nombre')
+      .from('productos').select('*').eq('activo', true).eq('sede_id', miSedeId).order('categoria').order('nombre')
     setProductos(prods || [])
     if (patientId) {
       const { data: p } = await supabase
@@ -649,3 +651,4 @@ export default function VentaFormPage() {
     </div>
   )
 }
+  
