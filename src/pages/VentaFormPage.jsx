@@ -134,8 +134,9 @@ export default function VentaFormPage() {
     const { data: inv, error } = await supabase
       .from('inventario_categorias_montura')
       .select('*, productos(*)')
-      .eq('codigo_qr', codigoLimpio)
-      .eq('activo', true)
+.eq('codigo_qr', codigoLimpio)
+.eq('sede_id', sedeId)
+.eq('activo', true) 
       .maybeSingle()
 
     if (error || !inv) {
@@ -178,7 +179,7 @@ export default function VentaFormPage() {
       setUserRole(profile?.roles?.nombre || null)
     }
     const { data: prods } = await supabase
-      .from('productos').select('*').eq('activo', true).order('categoria').order('nombre')
+  .from('productos').select('*').eq('activo', true).eq('sede_id', miSedeId).order('categoria').order('nombre')
     setProductos(prods || [])
     if (patientId) {
       const { data: p } = await supabase
