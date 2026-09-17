@@ -10,14 +10,29 @@ export default function TrabajosPendientesPage() {
   const [ventas, setVentas] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [sedeId, setSedeId] = useState(null)
 
-  useEffect(() => { fetchVentas() }, [])
+  useEffect(() => { init() }, [])
 
-  async function fetchVentas() {
+  async function init() {
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    let miSedeId = null
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles').select('sede_id').eq('id', user.id).single()
+      miSedeId = profile?.sede_id || null
+    }
+    setSedeId(miSedeId)
+    await fetchVentas(miSedeId)
+  }
+
+  async function fetchVentas(miSedeId = sedeId) {
     setLoading(true)
     const { data, error } = await supabase
       .from('ventas')
       .select('*, patients(id, nombres, apellidos, dni, telefono), venta_pagos(monto)')
+      .eq('sede_id', miSedeId)
       .neq('estado', 'anulada')
       .order('fecha', { ascending: true }) // más antiguos primero
       .limit(300)

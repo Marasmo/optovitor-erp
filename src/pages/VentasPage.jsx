@@ -53,7 +53,7 @@ export default function VentasPage() {
   const [savingGasto, setSavingGasto]     = useState(false)
 
   useEffect(() => { init() }, [])
-  useEffect(() => { fetchVentas() }, [modoFecha, filtroDia, filtroMes, filtroDesde, filtroHasta])
+  useEffect(() => { if (sedeId) fetchVentas() }, [sedeId, modoFecha, filtroDia, filtroMes, filtroDesde, filtroHasta])
 
   async function init() {
     setLoading(true)
@@ -67,7 +67,6 @@ export default function VentasPage() {
       setIsAdmin(profile?.roles?.nombre === 'admin')
       setSedeId(profile?.sede_id || null)
     }
-    await fetchVentas()
     setLoading(false)
   }
 
@@ -82,6 +81,7 @@ export default function VentasPage() {
     const { data, error } = await supabase
       .from('ventas')
       .select('*, patients(id, nombres, apellidos, dni, telefono)')
+      .eq('sede_id', sedeId)
       .gte('fecha', desde)
       .lte('fecha', hasta)
       .order('fecha', { ascending: false })
@@ -94,6 +94,7 @@ export default function VentasPage() {
     const { data: gastosData } = await supabase
       .from('gastos')
       .select('*')
+      .eq('sede_id', sedeId)
       .eq('fecha', hoy)
       .order('created_at', { ascending: false })
     setGastosHoy(gastosData || [])
