@@ -114,9 +114,9 @@ const TENANTS = {
       navActiveBg:    '#EEF6F2',
       navActiveText:  '#0C653A',
     },
-    logoSm: '/glasses-icon.png',
-    logoLg: '/logo-optica-juliaca.png',
-    favicon: '/favicon.ico',
+    logoSm: '/optica-azangaro-icon.png',
+    logoLg: '/optica-azangaro-logo.png',
+    favicon: '/optica-azangaro-favicon.ico',
   },
   sanjoseazangaro: {
     id: 'sanjoseazangaro',
