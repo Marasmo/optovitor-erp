@@ -295,20 +295,21 @@ export default function VentaFormPage() {
 
   const totales = useMemo(() => {
     const descuentoGlobalCentimos = solesToCentimos(descuentoGlobal || '0')
-    let subtotal = 0, igv = 0, total = 0
-    items.forEach((it, idx) => {
-      const isLast = idx === items.length - 1
+    const lineas = items.map(it => {
       const cantidad = parseFloat(it.cantidad) || 0
-      let precioCentimos = solesToCentimos(it.precio_unitario)
-      if (isLast && cantidad > 0) {
-        const totalLineaBase = Math.round(precioCentimos * cantidad)
-        const totalLineaConDescuento = Math.max(0, totalLineaBase - descuentoGlobalCentimos)
-        precioCentimos = Math.round(totalLineaConDescuento / cantidad)
-      }
-      const r = calcularLinea(precioCentimos, cantidad, it.tipo_afectacion_igv)
-      subtotal += r.subtotal; igv += r.igv; total += r.total
+      const precioCentimos = solesToCentimos(it.precio_unitario)
+      return calcularLinea(precioCentimos, cantidad, it.tipo_afectacion_igv)
     })
-    return { subtotal, igv, total, descuentoGlobalCentimos }
+    const subtotalBruto = lineas.reduce((s, l) => s + l.subtotal, 0)
+    const totalBruto = lineas.reduce((s, l) => s + l.total, 0)
+    // El descuento se reparte entre TODO el carrito, no solo el último ítem —
+    // como máximo puede bajar el total completo hasta 0, nunca menos.
+    const descuentoAplicado = Math.min(descuentoGlobalCentimos, totalBruto)
+    const total = totalBruto - descuentoAplicado
+    const factor = totalBruto > 0 ? total / totalBruto : 1
+    const subtotal = Math.round(subtotalBruto * factor)
+    const igv = total - subtotal
+    return { subtotal, igv, total, descuentoGlobalCentimos: descuentoAplicado, totalBruto }
   }, [items, descuentoGlobal])
 
   const productosFiltrados = productos.filter(p =>
@@ -334,16 +335,30 @@ export default function VentaFormPage() {
         }).select().single()
       if (ventaError) throw ventaError
 
-      const descuentoGlobalCentimos = solesToCentimos(descuentoGlobal || '0')
+      // Reparte el descuento global proporcionalmente entre todos los ítems
+      // (antes solo se aplicaba al último, topado en su propio precio).
+      // El último ítem absorbe el redondeo para que la suma cuadre exacto.
+      const descuentoGlobalCentimos = totales.descuentoGlobalCentimos
+      const totalBrutoCentimos = totales.totalBruto
+      let descuentoAsignado = 0
       const itemsPayload = items.map((it, idx) => {
         const precioBase = solesToCentimos(it.precio_unitario)
         const cantidad = parseFloat(it.cantidad) || 1
         const isLast = idx === items.length - 1
-        const descuentoPorUnidad = (isLast && cantidad > 0) ? Math.round(descuentoGlobalCentimos / cantidad) : 0
+        const lineaBruta = calcularLinea(precioBase, cantidad, it.tipo_afectacion_igv).total
+        let descuentoLinea
+        if (isLast) {
+          descuentoLinea = descuentoGlobalCentimos - descuentoAsignado
+        } else {
+          descuentoLinea = totalBrutoCentimos > 0
+            ? Math.round(descuentoGlobalCentimos * (lineaBruta / totalBrutoCentimos))
+            : 0
+          descuentoAsignado += descuentoLinea
+        }
         return {
           venta_id: venta.id, producto_id: it.producto_id,
           descripcion: it.descripcion.trim(), cantidad,
-          precio_unitario_centimos: precioBase, descuento_centimos: descuentoPorUnidad,
+          precio_unitario_centimos: precioBase, descuento_centimos: descuentoLinea,
           tipo_afectacion_igv: it.tipo_afectacion_igv, unidad_medida: it.unidad_medida,
         }
       })
@@ -651,4 +666,3 @@ export default function VentaFormPage() {
     </div>
   )
 }
-  
