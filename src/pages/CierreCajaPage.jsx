@@ -232,11 +232,11 @@ export default function CierreCajaPage() {
             )}
           </div>
         </div>
-      ) : !totales || totales.cantidad_ventas === 0 ? (
+      ) : !totales || totales.total === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center text-center">
           <Wallet size={32} className="text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500">No hay ventas registradas hoy todavía</p>
-          <p className="text-xs text-gray-400 mt-1">El cierre de caja estará disponible cuando haya al menos una venta con pago registrado</p>
+          <p className="text-sm text-gray-500">No hay pagos registrados hoy todavía</p>
+          <p className="text-xs text-gray-400 mt-1">El cierre de caja estará disponible cuando haya al menos un pago cobrado hoy</p>
         </div>
       ) : (
         <>
@@ -244,7 +244,7 @@ export default function CierreCajaPage() {
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <div className="px-5 pt-4 pb-2">
               <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                Efectivo y pagos esperados — {totales.cantidad_ventas} venta(s)
+                Efectivo y pagos esperados{totales.cantidad_ventas > 0 ? ` — ${totales.cantidad_ventas} venta(s) nueva(s)` : ''}
               </h3>
             </div>
             <div className="p-5 pt-3 space-y-2">
