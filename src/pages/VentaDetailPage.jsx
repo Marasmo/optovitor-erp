@@ -6,6 +6,16 @@ import VentaPrint from '../components/optica/prescriptions/VentaPrint'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
+// Fecha de "hoy" en zona horaria de Perú (UTC-5), sin importar la
+// zona horaria del navegador/servidor. Mismo patrón que en
+// VentaFormPage.jsx / VentasPage.jsx / ExamenPage.jsx.
+function fechaHoyPeru() {
+  const ahora = new Date()
+  const offsetPeru = -5 * 60
+  const peruTime = new Date(ahora.getTime() + (offsetPeru - ahora.getTimezoneOffset()) * 60000)
+  return peruTime.toISOString().split('T')[0]
+}
+
 const estadoBadge = {
   pendiente: 'bg-gray-100 text-gray-500',
   parcial:   'bg-amber-50 text-amber-700',
@@ -113,6 +123,7 @@ export default function VentaDetailPage() {
         venta_id: id,
         metodo_pago: nuevoMetodo,
         monto_centimos: Math.round(monto * 100),
+        fecha: fechaHoyPeru(),
       })
       if (error) throw error
 
@@ -183,6 +194,14 @@ export default function VentaDetailPage() {
       Venta no encontrada
     </div>
   )
+
+  // El descuento total se obtiene comparando el bruto (precio unitario x cantidad,
+  // sin descuento) contra el total ya calculado por la BD, en vez de asumir cómo
+  // escala descuento_centimos por línea (evita descuadres si cambia esa lógica).
+  const totalBrutoItems = items.reduce(
+    (sum, it) => sum + Number(it.precio_unitario) * Number(it.cantidad), 0
+  )
+  const totalDescuento = Math.max(0, totalBrutoItems - Number(venta.total))
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-5">
@@ -272,13 +291,10 @@ export default function VentaDetailPage() {
                 <td className="px-2 py-2.5 text-sm text-center text-gray-500">{Number(it.cantidad)}</td>
                 <td className="px-2 py-2.5 text-sm text-right text-gray-500">
                   S/ {Number(it.precio_unitario).toFixed(2)}
-                  {Number(it.descuento_centimos) > 0 && (
-                    <span className="block text-[10px] text-green-600">
-                      − S/ {(Number(it.descuento_centimos) / 100).toFixed(2)} dsto.
-                    </span>
-                  )}
                 </td>
-                <td className="px-5 py-2.5 text-sm text-right font-medium text-gray-700">S/ {Number(it.total).toFixed(2)}</td>
+                <td className="px-5 py-2.5 text-sm text-right font-medium text-gray-700">
+                  S/ {(Number(it.precio_unitario) * Number(it.cantidad)).toFixed(2)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -286,9 +302,23 @@ export default function VentaDetailPage() {
 
         {/* Total */}
         <div className="px-5 py-4 bg-gray-50/60 flex justify-end">
-          <div className="flex justify-between w-48 text-base font-bold">
-            <span className="text-gray-700">Total</span>
-            <span className="text-amber-700">S/ {Number(venta.total).toFixed(2)}</span>
+          <div className="w-48 space-y-1">
+            {totalDescuento > 0 && (
+              <>
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Subtotal</span>
+                  <span>S/ {totalBrutoItems.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Descuento</span>
+                  <span>− S/ {totalDescuento.toFixed(2)}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between text-base font-bold">
+              <span className="text-gray-700">Total</span>
+              <span className="text-amber-700">S/ {Number(venta.total).toFixed(2)}</span>
+            </div>
           </div>
         </div>
       </div>
